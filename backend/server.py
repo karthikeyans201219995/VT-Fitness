@@ -55,6 +55,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Initialize Supabase on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize Supabase client on startup"""
+    supabase = init_supabase()
+    if supabase:
+        logger.info("Supabase initialized successfully")
+    else:
+        logger.warning("Supabase not initialized - credentials may not be configured")
+
 @app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    logger.info("Application shutting down")
