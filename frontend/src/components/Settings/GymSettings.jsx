@@ -7,7 +7,7 @@ import { Label } from '../ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
 import { Building, Clock, Users, Plus, Edit, Trash2 } from 'lucide-react';
-import { toast } from '../ui/toast';
+import { useToast } from '../../hooks/use-toast';
 
 const GymSettings = () => {
   const [settings, setSettings] = useState(mockGymSettings);
