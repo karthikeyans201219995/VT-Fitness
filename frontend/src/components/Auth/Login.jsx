@@ -6,7 +6,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Dumbbell, Mail, Lock } from 'lucide-react';
-import { toast } from '../ui/toast';
+import { useToast } from '../../hooks/use-toast';
 
 const Login = () => {
   const [email, setEmail] = useState('');
