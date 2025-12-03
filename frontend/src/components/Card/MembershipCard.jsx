@@ -61,7 +61,7 @@ const MembershipCard = () => {
                   <p className="text-blue-200 text-sm">Premium Fitness Center</p>
                 </div>
                 <div className="bg-white rounded-lg p-2">
-                  <QRCode
+                  <QRCodeSVG
                     value={JSON.stringify({
                       memberId: memberData.memberId,
                       name: memberData.name,
