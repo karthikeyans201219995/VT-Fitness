@@ -4,7 +4,7 @@ import { mockMembers } from '../../mockData';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Download, Printer } from 'lucide-react';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
