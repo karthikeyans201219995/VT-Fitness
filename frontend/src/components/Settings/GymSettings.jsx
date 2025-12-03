@@ -12,6 +12,7 @@ import { useToast } from '../../hooks/use-toast';
 const GymSettings = () => {
   const [settings, setSettings] = useState(mockGymSettings);
   const [trainers, setTrainers] = useState(mockTrainers);
+  const { toast } = useToast();
 
   const handleSettingsChange = (e) => {
     setSettings({ ...settings, [e.target.name]: e.target.value });
