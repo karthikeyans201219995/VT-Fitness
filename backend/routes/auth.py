@@ -4,6 +4,7 @@ Authentication routes using Supabase Auth
 from fastapi import APIRouter, HTTPException, Depends, Header
 from typing import Optional
 import logging
+from datetime import datetime
 from models import UserSignup, UserLogin, TokenResponse, UserResponse
 from supabase_client import get_supabase, check_supabase_configured
 
