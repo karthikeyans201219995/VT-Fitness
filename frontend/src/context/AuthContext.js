@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { mockUsers } from '../mockData';
+import { authAPI } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -14,47 +14,84 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     // Check if user is already logged in
-    const storedUser = localStorage.getItem('gymUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const checkAuth = async () => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        try {
+          const userData = await authAPI.getCurrentUser();
+          setUser(userData);
+        } catch (err) {
+          console.error('Failed to fetch user:', err);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('gymUser');
+        }
+      }
+      setLoading(false);
+    };
+
+    checkAuth();
   }, []);
 
-  const login = (email, password) => {
-    const foundUser = mockUsers.find(
-      (u) => u.email === email && u.password === password
-    );
-    
-    if (foundUser) {
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('gymUser', JSON.stringify(userWithoutPassword));
-      return { success: true, user: userWithoutPassword };
+  const login = async (email, password) => {
+    try {
+      setError(null);
+      const response = await authAPI.login({ email, password });
+      
+      if (response.access_token) {
+        localStorage.setItem('authToken', response.access_token);
+        
+        // Fetch user data
+        const userData = await authAPI.getCurrentUser();
+        setUser(userData);
+        localStorage.setItem('gymUser', JSON.stringify(userData));
+        
+        return { success: true, user: userData };
+      }
+      
+      return { success: false, message: 'Login failed' };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, message: err.message };
     }
-    
-    return { success: false, message: 'Invalid email or password' };
   };
 
-  const signup = (userData) => {
-    // Mock signup - in real app, this would call API
-    const newUser = {
-      id: Date.now().toString(),
-      ...userData,
-      role: 'member'
-    };
-    const { password, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('gymUser', JSON.stringify(userWithoutPassword));
-    return { success: true, user: userWithoutPassword };
+  const signup = async (userData) => {
+    try {
+      setError(null);
+      const response = await authAPI.signup(userData);
+      
+      if (response.access_token) {
+        localStorage.setItem('authToken', response.access_token);
+        
+        // Fetch user data
+        const newUserData = await authAPI.getCurrentUser();
+        setUser(newUserData);
+        localStorage.setItem('gymUser', JSON.stringify(newUserData));
+        
+        return { success: true, user: newUserData };
+      }
+      
+      return { success: false, message: 'Signup failed' };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, message: err.message };
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('gymUser');
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('gymUser');
+    }
   };
 
   const value = {
@@ -63,6 +100,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     logout,
     loading,
+    error,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isTrainer: user?.role === 'trainer',
