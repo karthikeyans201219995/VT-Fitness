@@ -86,14 +86,14 @@ const AddPaymentForm = ({ onSubmit, onCancel }) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label className="text-gray-300">Select Member</Label>
-        <Select onValueChange={handleMemberSelect}>
+        <Select onValueChange={handleMemberSelect} required>
           <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
             <SelectValue placeholder="Choose member" />
           </SelectTrigger>
           <SelectContent className="bg-gray-800 border-gray-700">
-            {mockMembers.map(member => (
-              <SelectItem key={member.id} value={member.memberId}>
-                {member.name} ({member.memberId})
+            {members.map(member => (
+              <SelectItem key={member.id} value={member.id}>
+                {member.full_name} ({member.email})
               </SelectItem>
             ))}
           </SelectContent>
@@ -102,13 +102,13 @@ const AddPaymentForm = ({ onSubmit, onCancel }) => {
 
       <div className="space-y-2">
         <Label className="text-gray-300">Select Plan</Label>
-        <Select onValueChange={handlePlanSelect}>
+        <Select onValueChange={handlePlanSelect} value={formData.plan_id} required>
           <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
             <SelectValue placeholder="Choose plan" />
           </SelectTrigger>
           <SelectContent className="bg-gray-800 border-gray-700">
-            {mockPlans.map(plan => (
-              <SelectItem key={plan.id} value={plan.name}>
+            {plans.map(plan => (
+              <SelectItem key={plan.id} value={plan.id}>
                 {plan.name} - ${plan.price}
               </SelectItem>
             ))}
@@ -122,19 +122,19 @@ const AddPaymentForm = ({ onSubmit, onCancel }) => {
           <Input
             name="amount"
             type="number"
+            step="0.01"
             value={formData.amount}
             onChange={handleChange}
             className="bg-gray-800 border-gray-700 text-white"
             required
-            readOnly
           />
         </div>
         <div className="space-y-2">
           <Label className="text-gray-300">Payment Date</Label>
           <Input
-            name="date"
+            name="payment_date"
             type="date"
-            value={formData.date}
+            value={formData.payment_date}
             onChange={handleChange}
             className="bg-gray-800 border-gray-700 text-white"
             required
@@ -144,16 +144,20 @@ const AddPaymentForm = ({ onSubmit, onCancel }) => {
 
       <div className="space-y-2">
         <Label className="text-gray-300">Payment Method</Label>
-        <Select onValueChange={(value) => setFormData({ ...formData, paymentMethod: value })}>
+        <Select 
+          onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
+          required
+        >
           <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
             <SelectValue placeholder="Select method" />
           </SelectTrigger>
           <SelectContent className="bg-gray-800 border-gray-700">
-            <SelectItem value="Cash">Cash</SelectItem>
-            <SelectItem value="Credit Card">Credit Card</SelectItem>
-            <SelectItem value="Debit Card">Debit Card</SelectItem>
-            <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-            <SelectItem value="UPI">UPI</SelectItem>
+            <SelectItem value="cash">Cash</SelectItem>
+            <SelectItem value="credit_card">Credit Card</SelectItem>
+            <SelectItem value="debit_card">Debit Card</SelectItem>
+            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+            <SelectItem value="upi">UPI</SelectItem>
+            <SelectItem value="other">Other</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -161,13 +165,41 @@ const AddPaymentForm = ({ onSubmit, onCancel }) => {
       <div className="space-y-2">
         <Label className="text-gray-300">Invoice Number</Label>
         <Input
-          name="invoiceNo"
-          value={formData.invoiceNo}
+          name="invoice_number"
+          value={formData.invoice_number}
           onChange={handleChange}
           className="bg-gray-800 border-gray-700 text-white"
           required
           readOnly
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-gray-300">Notes (Optional)</Label>
+        <Input
+          name="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          className="bg-gray-800 border-gray-700 text-white"
+          placeholder="Add any additional notes"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-gray-300">Payment Status</Label>
+        <Select 
+          value={formData.status}
+          onValueChange={(value) => setFormData({ ...formData, status: value })}
+        >
+          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-800 border-gray-700">
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex justify-end space-x-3 pt-4">
