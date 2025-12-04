@@ -91,7 +91,7 @@ async def login(credentials: UserLogin, _: None = Depends(verify_supabase_config
                 "full_name": auth_response.user.user_metadata.get("full_name", ""),
                 "phone": auth_response.user.user_metadata.get("phone"),
                 "role": auth_response.user.user_metadata.get("role", "member"),
-                "created_at": auth_response.user.created_at
+                "created_at": auth_response.user.created_at.isoformat() if auth_response.user.created_at else datetime.utcnow().isoformat()
             }
             supabase.table("users").insert(user_profile).execute()
         else:
