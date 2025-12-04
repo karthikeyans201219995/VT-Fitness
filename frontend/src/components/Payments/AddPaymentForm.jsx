@@ -1,42 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { mockMembers, mockPlans } from '../../mockData';
+import { membersAPI, plansAPI } from '../../services/api';
+import { Loader2 } from 'lucide-react';
 
 const AddPaymentForm = ({ onSubmit, onCancel }) => {
+  const [members, setMembers] = useState([]);
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
-    memberId: '',
-    memberName: '',
+    member_id: '',
+    plan_id: '',
     amount: '',
-    plan: '',
-    paymentMethod: '',
+    payment_method: '',
     status: 'paid',
-    date: new Date().toISOString().split('T')[0],
-    invoiceNo: `INV-2025-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
+    payment_date: new Date().toISOString().split('T')[0],
+    invoice_number: `INV-2025-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+    notes: ''
   });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [membersData, plansData] = await Promise.all([
+        membersAPI.getAll(),
+        plansAPI.getAll()
+      ]);
+      setMembers(membersData || []);
+      setPlans(plansData || []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleMemberSelect = (memberId) => {
-    const member = mockMembers.find(m => m.memberId === memberId);
-    if (member) {
-      setFormData({ 
-        ...formData, 
-        memberId: member.memberId,
-        memberName: member.name,
-        plan: member.plan
-      });
+    const member = members.find(m => m.id === memberId);
+    if (member && member.plan_id) {
+      const plan = plans.find(p => p.id === member.plan_id);
+      if (plan) {
+        setFormData({ 
+          ...formData, 
+          member_id: memberId,
+          plan_id: plan.id,
+          amount: plan.price.toString()
+        });
+      }
+    } else {
+      setFormData({ ...formData, member_id: memberId });
     }
   };
 
-  const handlePlanSelect = (planName) => {
-    const plan = mockPlans.find(p => p.name === planName);
+  const handlePlanSelect = (planId) => {
+    const plan = plans.find(p => p.id === planId);
     if (plan) {
-      setFormData({ ...formData, plan: planName, amount: plan.price });
+      setFormData({ ...formData, plan_id: planId, amount: plan.price.toString() });
     }
   };
 
@@ -44,6 +73,14 @@ const AddPaymentForm = ({ onSubmit, onCancel }) => {
     e.preventDefault();
     onSubmit(formData);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
