@@ -1,25 +1,49 @@
-import React, { useState } from 'react';
-import { mockAttendance, mockMembers } from '../../mockData';
+import React, { useState, useEffect } from 'react';
+import { attendanceAPI } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { ScanLine, Search, Clock } from 'lucide-react';
+import { ScanLine, Search, Clock, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import QRScanner from './QRScanner';
+import { useToast } from '../../hooks/use-toast';
 
 const AttendanceTracker = () => {
-  const [attendance, setAttendance] = useState(mockAttendance);
+  const [attendance, setAttendance] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchAttendance();
+  }, []);
+
+  const fetchAttendance = async () => {
+    try {
+      setLoading(true);
+      const data = await attendanceAPI.getAll();
+      setAttendance(data || []);
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load attendance records',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredAttendance = attendance.filter(
     (record) =>
-      record.memberName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      record.memberId.toLowerCase().includes(searchQuery.toLowerCase())
+      record.member_id?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatDateTime = (dateTime) => {
+    if (!dateTime) return { date: 'N/A', time: 'N/A' };
     const date = new Date(dateTime);
     return {
       date: date.toLocaleDateString(),
@@ -27,26 +51,62 @@ const AttendanceTracker = () => {
     };
   };
 
-  const handleScanSuccess = (data) => {
+  const handleScanSuccess = async (data) => {
     try {
       const memberData = JSON.parse(data);
-      const member = mockMembers.find(m => m.memberId === memberData.memberId);
       
-      if (member) {
-        const newRecord = {
-          id: `A${attendance.length + 1}`,
-          memberId: member.memberId,
-          memberName: member.name,
-          checkInTime: new Date().toISOString(),
-          checkOutTime: null
-        };
-        setAttendance([newRecord, ...attendance]);
-        setShowScanner(false);
-      }
+      const newRecord = {
+        member_id: memberData.memberId,
+        check_in_time: new Date().toISOString(),
+      };
+      
+      await attendanceAPI.create(newRecord);
+      toast({
+        title: 'Success',
+        description: 'Check-in recorded successfully',
+      });
+      setShowScanner(false);
+      fetchAttendance();
     } catch (error) {
-      console.error('Invalid QR code data');
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to record check-in',
+        variant: 'destructive',
+      });
     }
   };
+
+  const handleCheckout = async (recordId) => {
+    try {
+      await attendanceAPI.update(recordId, {
+        check_out_time: new Date().toISOString()
+      });
+      toast({
+        title: 'Success',
+        description: 'Check-out recorded successfully',
+      });
+      fetchAttendance();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to record check-out',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  const todayAttendance = attendance.filter(a => {
+    const date = new Date(a.check_in_time);
+    return date.toDateString() === new Date().toDateString();
+  });
 
   return (
     <div className="space-y-6">
@@ -79,17 +139,12 @@ const AttendanceTracker = () => {
             <Clock className="h-5 w-5 text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-white">
-              {attendance.filter(a => {
-                const date = new Date(a.checkInTime);
-                return date.toDateString() === new Date().toDateString();
-              }).length}
-            </div>
+            <div className="text-3xl font-bold text-white">{todayAttendance.length}</div>
           </CardContent>
         </Card>
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">This Week</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-400">Total Records</CardTitle>
             <Clock className="h-5 w-5 text-green-400" />
           </CardHeader>
           <CardContent>
@@ -98,12 +153,12 @@ const AttendanceTracker = () => {
         </Card>
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Active Now</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-400">Currently In Gym</CardTitle>
             <Clock className="h-5 w-5 text-purple-400" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-white">
-              {attendance.filter(a => !a.checkOutTime).length}
+              {attendance.filter(a => !a.check_out_time).length}
             </div>
           </CardContent>
         </Card>
@@ -116,7 +171,7 @@ const AttendanceTracker = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
               <Input
-                placeholder="Search by member name or ID..."
+                placeholder="Search by member ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-600"
@@ -125,42 +180,42 @@ const AttendanceTracker = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filteredAttendance.map((record) => {
-              const checkIn = formatDateTime(record.checkInTime);
-              const checkOut = record.checkOutTime ? formatDateTime(record.checkOutTime) : null;
+              const checkIn = formatDateTime(record.check_in_time);
+              const checkOut = formatDateTime(record.check_out_time);
               
               return (
                 <div
                   key={record.id}
-                  className="p-4 bg-gray-800 rounded-lg border border-gray-700 hover:border-blue-600 transition-all duration-200"
+                  className="p-4 bg-gray-800 rounded-lg border border-gray-700"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold text-white">{record.memberName}</h3>
-                        <Badge className="bg-blue-600">ID: {record.memberId}</Badge>
-                        {!checkOut && (
-                          <Badge className="bg-green-600">Active</Badge>
-                        )}
+                        <h3 className="text-lg font-semibold text-white">Member: {record.member_id}</h3>
+                        <Badge className={record.check_out_time ? 'bg-gray-600' : 'bg-green-600'}>
+                          {record.check_out_time ? 'Checked Out' : 'In Gym'}
+                        </Badge>
                       </div>
-                      <div className="flex items-center space-x-6 text-sm">
-                        <div>
-                          <span className="text-gray-400">Check-in: </span>
-                          <span className="text-white font-medium">
-                            {checkIn.date} at {checkIn.time}
-                          </span>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="text-gray-400">
+                          <span className="font-medium">Check-in:</span> {checkIn.date} at {checkIn.time}
                         </div>
-                        {checkOut && (
-                          <div>
-                            <span className="text-gray-400">Check-out: </span>
-                            <span className="text-white font-medium">
-                              {checkOut.date} at {checkOut.time}
-                            </span>
-                          </div>
-                        )}
+                        <div className="text-gray-400">
+                          <span className="font-medium">Check-out:</span> {checkOut.date} at {checkOut.time}
+                        </div>
                       </div>
                     </div>
+                    {!record.check_out_time && (
+                      <Button
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                        onClick={() => handleCheckout(record.id)}
+                      >
+                        Check Out
+                      </Button>
+                    )}
                   </div>
                 </div>
               );

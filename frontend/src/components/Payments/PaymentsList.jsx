@@ -1,37 +1,98 @@
-import React, { useState } from 'react';
-import { mockPayments } from '../../mockData';
+import React, { useState, useEffect } from 'react';
+import { paymentsAPI } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Search, Download, Plus, DollarSign, CreditCard, Clock } from 'lucide-react';
+import { Search, Download, Plus, DollarSign, CreditCard, Clock, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import AddPaymentForm from './AddPaymentForm';
+import { useToast } from '../../hooks/use-toast';
 
 const PaymentsList = () => {
-  const [payments, setPayments] = useState(mockPayments);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      const data = await paymentsAPI.getAll();
+      setPayments(data || []);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load payments',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredPayments = payments.filter(
     (payment) =>
-      payment.memberName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.invoiceNo.toLowerCase().includes(searchQuery.toLowerCase())
+      payment.member_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
-  const paidAmount = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
-  const pendingAmount = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
+  const totalRevenue = payments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+  const paidAmount = payments
+    .filter(p => p.status === 'paid')
+    .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+  const pendingAmount = payments
+    .filter(p => p.status === 'pending')
+    .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
 
-  const handleAddPayment = (newPayment) => {
-    setPayments([...payments, newPayment]);
-    setShowAddDialog(false);
+  const handleAddPayment = async (newPayment) => {
+    try {
+      await paymentsAPI.create(newPayment);
+      toast({
+        title: 'Success',
+        description: 'Payment recorded successfully',
+      });
+      setShowAddDialog(false);
+      fetchPayments();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to record payment',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleDownloadInvoice = (payment) => {
     // Mock download - in real app, generate PDF invoice
-    alert(`Downloading invoice ${payment.invoiceNo}`);
+    toast({
+      title: 'Info',
+      description: `Downloading invoice ${payment.invoice_number}`,
+    });
   };
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'paid': return 'bg-green-600';
+      case 'pending': return 'bg-yellow-600';
+      case 'failed': return 'bg-red-600';
+      default: return 'bg-gray-600';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -64,7 +125,7 @@ const PaymentsList = () => {
             <DollarSign className="h-5 w-5 text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-white">${totalRevenue}</div>
+            <div className="text-3xl font-bold text-white">${totalRevenue.toFixed(2)}</div>
           </CardContent>
         </Card>
         <Card className="bg-gray-900 border-gray-800">
@@ -73,7 +134,7 @@ const PaymentsList = () => {
             <CreditCard className="h-5 w-5 text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-white">${paidAmount}</div>
+            <div className="text-3xl font-bold text-white">${paidAmount.toFixed(2)}</div>
           </CardContent>
         </Card>
         <Card className="bg-gray-900 border-gray-800">
@@ -82,7 +143,7 @@ const PaymentsList = () => {
             <Clock className="h-5 w-5 text-orange-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-white">${pendingAmount}</div>
+            <div className="text-3xl font-bold text-white">${pendingAmount.toFixed(2)}</div>
           </CardContent>
         </Card>
       </div>
@@ -103,59 +164,57 @@ const PaymentsList = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filteredPayments.map((payment) => (
               <div
                 key={payment.id}
-                className="p-4 bg-gray-800 rounded-lg border border-gray-700 hover:border-blue-600 transition-all duration-200"
+                className="p-4 bg-gray-800 rounded-lg border border-gray-700"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-semibold text-white">{payment.memberName}</h3>
-                      <Badge className={payment.status === 'paid' ? 'bg-green-600' : 'bg-orange-600'}>
+                      <h3 className="text-lg font-semibold text-white">
+                        Invoice: {payment.invoice_number}
+                      </h3>
+                      <Badge className={getStatusColor(payment.status)}>
                         {payment.status}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
-                      <div>
-                        <span className="text-gray-400">Invoice: </span>
-                        <span className="text-white font-medium">{payment.invoiceNo}</span>
+                      <div className="text-gray-400">
+                        <span className="font-medium">Member:</span> {payment.member_id}
                       </div>
-                      <div>
-                        <span className="text-gray-400">Plan: </span>
-                        <span className="text-blue-400 font-medium">{payment.plan}</span>
+                      <div className="text-gray-400">
+                        <span className="font-medium">Amount:</span> ${parseFloat(payment.amount).toFixed(2)}
                       </div>
-                      <div>
-                        <span className="text-gray-400">Method: </span>
-                        <span className="text-white font-medium">{payment.paymentMethod}</span>
+                      <div className="text-gray-400">
+                        <span className="font-medium">Method:</span> {payment.payment_method}
                       </div>
-                      <div>
-                        <span className="text-gray-400">Date: </span>
-                        <span className="text-white font-medium">{payment.date}</span>
+                      <div className="text-gray-400">
+                        <span className="font-medium">Date:</span> {new Date(payment.payment_date).toLocaleDateString()}
                       </div>
                     </div>
+                    {payment.notes && (
+                      <div className="mt-2 text-sm text-gray-500">
+                        Note: {payment.notes}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-white">${payment.amount}</p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-700 text-white hover:bg-gray-700"
-                      onClick={() => handleDownloadInvoice(payment)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-700 text-white hover:bg-gray-700"
+                    onClick={() => handleDownloadInvoice(payment)}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
           {filteredPayments.length === 0 && (
             <div className="text-center py-8 text-gray-400">
-              No payments found.
+              No payment records found.
             </div>
           )}
         </CardContent>
