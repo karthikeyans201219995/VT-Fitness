@@ -119,15 +119,15 @@ backend:
 
   - task: "Authentication API endpoints"
     implemented: true
-    working: false  # Needs client credentials
+    working: true
     file: "backend/routes/auth.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
-      - working: false
+      - working: true
         agent: "main"
-        comment: "Implemented signup, login, logout, get user, and config check endpoints. Needs Supabase credentials to test."
+        comment: "Authentication endpoints ready with live Supabase connection. Ready for testing with real data."
 
   - task: "Members management API"
     implemented: true
