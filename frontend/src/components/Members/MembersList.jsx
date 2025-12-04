@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { mockMembers } from '../../mockData';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import React, { useState, useEffect } from 'react';
+import { membersAPI, plansAPI } from '../../services/api';
+import { Card, CardContent, CardHeader } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Search, Plus, Edit, Eye, Mail, Phone } from 'lucide-react';
+import { Search, Plus, Edit, Eye, Mail, Phone, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -15,29 +15,83 @@ import {
 } from '../ui/dialog';
 import AddMemberForm from './AddMemberForm';
 import MemberDetails from './MemberDetails';
+import { useToast } from '../../hooks/use-toast';
 
 const MembersList = () => {
-  const [members, setMembers] = useState(mockMembers);
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  const fetchMembers = async () => {
+    try {
+      setLoading(true);
+      const data = await membersAPI.getAll();
+      setMembers(data || []);
+    } catch (error) {
+      console.error('Error fetching members:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load members',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredMembers = members.filter(member =>
-    member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.memberId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchQuery.toLowerCase())
+    member.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.phone?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddMember = (newMember) => {
-    setMembers([...members, { ...newMember, id: `M${members.length + 1}` }]);
-    setShowAddDialog(false);
+  const handleAddMember = async (newMember) => {
+    try {
+      await membersAPI.create(newMember);
+      toast({
+        title: 'Success',
+        description: 'Member added successfully',
+      });
+      setShowAddDialog(false);
+      fetchMembers();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to add member',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleViewDetails = (member) => {
     setSelectedMember(member);
     setShowDetailsDialog(true);
   };
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'active': return 'bg-green-600';
+      case 'inactive': return 'bg-yellow-600';
+      case 'expired': return 'bg-red-600';
+      default: return 'bg-gray-600';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -89,18 +143,12 @@ const MembersList = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-semibold text-white">{member.name}</h3>
-                      <Badge
-                        className={member.status === 'active' ? 'bg-green-600' : 'bg-red-600'}
-                      >
+                      <h3 className="text-lg font-semibold text-white">{member.full_name}</h3>
+                      <Badge className={getStatusColor(member.status)}>
                         {member.status}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                      <div className="flex items-center text-gray-400">
-                        <span className="font-medium text-gray-300 mr-2">ID:</span>
-                        {member.memberId}
-                      </div>
                       <div className="flex items-center text-gray-400">
                         <Mail className="mr-2 h-4 w-4" />
                         {member.email}
@@ -112,10 +160,10 @@ const MembersList = () => {
                     </div>
                     <div className="mt-2 flex items-center space-x-4 text-sm">
                       <span className="text-gray-400">
-                        Plan: <span className="text-blue-400 font-medium">{member.plan}</span>
+                        Start: <span className="text-white font-medium">{new Date(member.start_date).toLocaleDateString()}</span>
                       </span>
                       <span className="text-gray-400">
-                        Valid Until: <span className="text-white font-medium">{member.validUntil}</span>
+                        End: <span className="text-white font-medium">{new Date(member.end_date).toLocaleDateString()}</span>
                       </span>
                     </div>
                   </div>
