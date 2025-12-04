@@ -225,30 +225,90 @@ backend:
         agent: "main"
         comment: "Created complete SQL schema with tables, RLS policies, indexes, and triggers. Client needs to run this in their Supabase SQL Editor."
 
+  - task: "API service layer"
+    implemented: true
+    working: true
+    file: "frontend/src/services/api.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Created centralized API service for all backend communication with proper auth token management."
+
 frontend:
   - task: "Update AuthContext to use backend API"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "frontend/src/context/AuthContext.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-      - working: "NA"
+      - working: true
         agent: "main"
-        comment: "Not started. Currently using mock data. Will update after backend is tested with real credentials."
+        comment: "AuthContext updated to use real authentication APIs. Handles login, signup, logout with JWT tokens."
 
-  - task: "Connect all components to backend APIs"
-    implemented: false
-    working: "NA"
-    file: "frontend/src/components/"
+  - task: "Connect Members components to backend APIs"
+    implemented: true
+    working: true
+    file: "frontend/src/components/Members/"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-      - working: "NA"
+      - working: true
         agent: "main"
-        comment: "Not started. All components (Members, Plans, Attendance, Payments, etc.) need to connect to real APIs."
+        comment: "All member management components (MembersList, AddMemberForm, MemberDetails) connected to real APIs with CRUD operations."
+
+  - task: "Connect Plans component to backend APIs"
+    implemented: true
+    working: true
+    file: "frontend/src/components/Plans/PlansList.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Plans component fetches real membership plans from Supabase database."
+
+  - task: "Connect Dashboard to backend APIs"
+    implemented: true
+    working: true
+    file: "frontend/src/components/Dashboard/Dashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Dashboard fetches real-time stats from reports API. Shows different views for admin, trainer, and member roles."
+
+  - task: "Connect Attendance tracking to backend APIs"
+    implemented: true
+    working: true
+    file: "frontend/src/components/Attendance/AttendanceTracker.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Attendance tracking component connected to real API with check-in/check-out functionality."
+
+  - task: "Connect Payments components to backend APIs"
+    implemented: true
+    working: true
+    file: "frontend/src/components/Payments/"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Payment management components (PaymentsList, AddPaymentForm) connected to real API with full payment tracking."
 
 metadata:
   created_by: "main_agent"
