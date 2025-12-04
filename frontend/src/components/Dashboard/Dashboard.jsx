@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Users, DollarSign, TrendingUp, AlertCircle, UserCheck } from 'lucide-react';
-import { mockDashboardStats, mockAttendanceChart, mockRevenueChart, mockMembers } from '../../mockData';
+import { Users, DollarSign, TrendingUp, AlertCircle, UserCheck, Loader2 } from 'lucide-react';
+import { reportsAPI, membersAPI } from '../../services/api';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const StatCard = ({ title, value, icon: Icon, trend, color }) => (
@@ -22,35 +22,83 @@ const StatCard = ({ title, value, icon: Icon, trend, color }) => (
 
 const Dashboard = () => {
   const { user, isAdmin, isTrainer, isMember } = useAuth();
-  const stats = mockDashboardStats;
+  const [dashboardData, setDashboardData] = useState(null);
+  const [memberData, setMemberData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [user]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      if (isMember) {
+        // Fetch member-specific data
+        const members = await membersAPI.getAll();
+        const myData = members.find(m => m.email === user?.email);
+        setMemberData(myData);
+      } else {
+        // Fetch admin/trainer dashboard stats
+        const stats = await reportsAPI.getDashboard();
+        setDashboardData(stats);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   if (isMember) {
-    const memberData = mockMembers.find(m => m.email === user.email) || mockMembers[0];
-    
+    if (!memberData) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Welcome Back, {user?.full_name || user?.name}!</h1>
+            <p className="text-gray-400">Track your fitness journey</p>
+          </div>
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="py-8">
+              <p className="text-center text-gray-400">No membership data found. Please contact your gym administrator.</p>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome Back, {user.name}!</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Welcome Back, {memberData.full_name}!</h1>
           <p className="text-gray-400">Track your fitness journey</p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <StatCard
             title="Membership Status"
-            value={memberData.status === 'active' ? 'Active' : 'Expired'}
+            value={memberData.status === 'active' ? 'Active' : memberData.status === 'inactive' ? 'Inactive' : 'Expired'}
             icon={UserCheck}
-            color={memberData.status === 'active' ? 'bg-green-600' : 'bg-red-600'}
-            trend={`Valid until ${memberData.validUntil}`}
+            color={memberData.status === 'active' ? 'bg-green-600' : memberData.status === 'inactive' ? 'bg-yellow-600' : 'bg-red-600'}
+            trend={`Valid until ${new Date(memberData.end_date).toLocaleDateString()}`}
           />
           <StatCard
-            title="Current Plan"
-            value={memberData.plan}
+            title="Join Date"
+            value={new Date(memberData.start_date).toLocaleDateString()}
             icon={TrendingUp}
             color="bg-blue-600"
           />
           <StatCard
-            title="Last Check-in"
-            value={memberData.lastCheckIn}
+            title="Member Since"
+            value={`${Math.floor((new Date() - new Date(memberData.start_date)) / (1000 * 60 * 60 * 24))} days`}
             icon={AlertCircle}
             color="bg-purple-600"
           />
@@ -62,20 +110,20 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between py-2 border-b border-gray-800">
-              <span className="text-gray-400">Member ID</span>
-              <span className="text-white font-medium">{memberData.memberId}</span>
+              <span className="text-gray-400">Email</span>
+              <span className="text-white font-medium">{memberData.email}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-gray-800">
-              <span className="text-gray-400">Join Date</span>
-              <span className="text-white font-medium">{memberData.joinDate}</span>
+              <span className="text-gray-400">Phone</span>
+              <span className="text-white font-medium">{memberData.phone}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-gray-800">
               <span className="text-gray-400">Blood Group</span>
-              <span className="text-white font-medium">{memberData.bloodGroup}</span>
+              <span className="text-white font-medium">{memberData.blood_group || 'N/A'}</span>
             </div>
             <div className="flex justify-between py-2">
               <span className="text-gray-400">Emergency Contact</span>
-              <span className="text-white font-medium">{memberData.emergencyContact}</span>
+              <span className="text-white font-medium">{memberData.emergency_contact} ({memberData.emergency_phone})</span>
             </div>
           </CardContent>
         </Card>
@@ -95,14 +143,14 @@ const Dashboard = () => {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Members"
-          value={stats.totalMembers}
+          value={dashboardData?.total_members || 0}
           icon={Users}
           color="bg-blue-600"
-          trend={`+${stats.newMembersThisMonth} this month`}
+          trend={dashboardData?.new_members_this_month ? `+${dashboardData.new_members_this_month} this month` : ''}
         />
         <StatCard
           title="Active Members"
-          value={stats.activeMembers}
+          value={dashboardData?.active_members || 0}
           icon={UserCheck}
           color="bg-green-600"
         />
@@ -110,14 +158,14 @@ const Dashboard = () => {
           <>
             <StatCard
               title="Monthly Revenue"
-              value={`$${stats.monthlyRevenue}`}
+              value={`$${dashboardData?.monthly_revenue || 0}`}
               icon={DollarSign}
               color="bg-purple-600"
-              trend="+12% from last month"
+              trend={dashboardData?.revenue_trend || ''}
             />
             <StatCard
               title="Today's Check-ins"
-              value={stats.todayCheckIns}
+              value={dashboardData?.today_checkins || 0}
               icon={TrendingUp}
               color="bg-orange-600"
             />
@@ -125,77 +173,49 @@ const Dashboard = () => {
         )}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-white">Weekly Attendance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockAttendanceChart}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="day" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
-                  labelStyle={{ color: '#fff' }}
-                />
-                <Bar dataKey="count" fill="#3B82F6" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {isAdmin && (
+      {dashboardData?.attendance_chart && (
+        <div className="grid gap-6 md:grid-cols-2">
           <Card className="bg-gray-900 border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Revenue Trend</CardTitle>
+              <CardTitle className="text-white">Weekly Attendance</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={mockRevenueChart}>
+                <BarChart data={dashboardData.attendance_chart}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="month" stroke="#9CA3AF" />
+                  <XAxis dataKey="day" stroke="#9CA3AF" />
                   <YAxis stroke="#9CA3AF" />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
                     labelStyle={{ color: '#fff' }}
                   />
-                  <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={3} dot={{ fill: '#3B82F6', r: 5 }} />
-                </LineChart>
+                  <Bar dataKey="count" fill="#3B82F6" radius={[8, 8, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        )}
-      </div>
 
-      {isAdmin && (
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <AlertCircle className="mr-2 h-5 w-5 text-orange-500" />
-                Expiring This Week
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white mb-2">{stats.expiringThisWeek} Members</div>
-              <p className="text-sm text-gray-400">Reach out for renewals</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <AlertCircle className="mr-2 h-5 w-5 text-red-500" />
-                Pending Payments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white mb-2">{stats.pendingPayments} Payments</div>
-              <p className="text-sm text-gray-400">Follow up required</p>
-            </CardContent>
-          </Card>
+          {isAdmin && dashboardData?.revenue_chart && (
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white">Revenue Trend</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={dashboardData.revenue_chart}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="month" stroke="#9CA3AF" />
+                    <YAxis stroke="#9CA3AF" />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                      labelStyle={{ color: '#fff' }}
+                    />
+                    <Line type="monotone" dataKey="revenue" stroke="#8B5CF6" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>
