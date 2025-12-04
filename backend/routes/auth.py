@@ -49,7 +49,7 @@ async def signup(user_data: UserSignup, _: None = Depends(verify_supabase_config
             "full_name": user_data.full_name,
             "phone": user_data.phone,
             "role": user_data.role.value,
-            "created_at": auth_response.user.created_at
+            "created_at": auth_response.user.created_at.isoformat() if auth_response.user.created_at else datetime.utcnow().isoformat()
         }
         
         supabase.table("users").insert(user_profile).execute()
