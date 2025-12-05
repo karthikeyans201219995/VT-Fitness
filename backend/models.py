@@ -33,6 +33,14 @@ class PaymentMethod(str, Enum):
     bank_transfer = "bank_transfer"
 
 
+class PaymentType(str, Enum):
+    initial = "initial"
+    renewal = "renewal"
+    upgrade = "upgrade"
+    partial = "partial"
+    balance_clearance = "balance_clearance"
+
+
 # User/Auth Models
 class UserSignup(BaseModel):
     email: EmailStr
@@ -66,6 +74,7 @@ class TokenResponse(BaseModel):
 class MemberCreate(BaseModel):
     full_name: str
     email: EmailStr
+    password: Optional[str] = None
     phone: str
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
@@ -73,6 +82,10 @@ class MemberCreate(BaseModel):
     emergency_contact: Optional[str] = None
     emergency_phone: Optional[str] = None
     blood_group: Optional[str] = None
+    # Payment fields (required for member creation)
+    payment_amount: Optional[float] = None
+    payment_method: Optional[PaymentMethod] = None
+    payment_date: Optional[date] = None
     medical_conditions: Optional[str] = None
     plan_id: Optional[str] = None
     start_date: date
@@ -98,7 +111,8 @@ class MemberUpdate(BaseModel):
 
 class MemberResponse(BaseModel):
     id: str
-    user_id: str
+    user_id: Optional[str] = None
+    member_id: Optional[str] = None
     full_name: str
     email: str
     phone: str
@@ -111,9 +125,15 @@ class MemberResponse(BaseModel):
     medical_conditions: Optional[str] = None
     plan_id: Optional[str] = None
     plan_name: Optional[str] = None
+    previous_plan_id: Optional[str] = None
+    plan_changed_at: Optional[str] = None
     start_date: str
     end_date: str
     status: str
+    total_amount_due: Optional[float] = 0
+    amount_paid: Optional[float] = 0
+    balance_due: Optional[float] = 0
+    qr_code: Optional[str] = None
     created_at: str
 
 
@@ -171,6 +191,22 @@ class AttendanceResponse(BaseModel):
     created_at: str
 
 
+# QR Code Models
+class QRScanRequest(BaseModel):
+    qr_code: str
+    notes: Optional[str] = None
+
+
+class QRScanResponse(BaseModel):
+    success: bool
+    action: str  # "check_in" or "check_out"
+    member_name: str
+    member_id: str
+    timestamp: str
+    message: str
+    attendance_id: Optional[str] = None
+
+
 # Payment Models
 class PaymentCreate(BaseModel):
     member_id: str
@@ -180,6 +216,35 @@ class PaymentCreate(BaseModel):
     plan_id: Optional[str] = None
     description: Optional[str] = None
     status: PaymentStatus = PaymentStatus.completed
+    payment_type: Optional[PaymentType] = PaymentType.initial
+    is_partial: Optional[bool] = False
+    remaining_balance: Optional[float] = 0
+
+
+class MemberWithPaymentCreate(BaseModel):
+    # Member fields
+    full_name: str
+    email: EmailStr
+    password: Optional[str] = None
+    phone: str
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    address: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    emergency_phone: Optional[str] = None
+    blood_group: Optional[str] = None
+    medical_conditions: Optional[str] = None
+    plan_id: Optional[str] = None
+    start_date: date
+    end_date: date
+    status: MembershipStatus = MembershipStatus.active
+    # Payment fields
+    amount: float
+    payment_method: PaymentMethod
+    payment_date: date
+    payment_status: PaymentStatus = PaymentStatus.completed
+    invoice_number: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class PaymentUpdate(BaseModel):
@@ -202,7 +267,23 @@ class PaymentResponse(BaseModel):
     plan_name: Optional[str] = None
     description: Optional[str] = None
     status: str
+    payment_type: Optional[str] = "initial"
+    is_partial: Optional[bool] = False
+    remaining_balance: Optional[float] = 0
     created_at: str
+
+
+class BalanceSummary(BaseModel):
+    member_id: str
+    member_name: str
+    email: str
+    phone: str
+    plan_name: Optional[str] = None
+    total_amount_due: float
+    amount_paid: float
+    balance_due: float
+    status: str
+    end_date: str
 
 
 # Settings Models

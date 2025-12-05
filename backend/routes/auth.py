@@ -6,7 +6,7 @@ from typing import Optional
 import logging
 from datetime import datetime
 from models import UserSignup, UserLogin, TokenResponse, UserResponse
-from supabase_client import get_supabase, check_supabase_configured
+from supabase_client import get_supabase, get_supabase_service, check_supabase_configured
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -69,6 +69,7 @@ async def signup(user_data: UserSignup, _: None = Depends(verify_supabase_config
 async def login(credentials: UserLogin, _: None = Depends(verify_supabase_configured)):
     """Login user"""
     supabase = get_supabase()
+    supabase_service = get_supabase_service()
     
     try:
         # Sign in with Supabase Auth
@@ -80,8 +81,8 @@ async def login(credentials: UserLogin, _: None = Depends(verify_supabase_config
         if not auth_response.user:
             raise HTTPException(status_code=401, detail="Invalid credentials")
         
-        # Get user profile from database
-        user_response = supabase.table("users").select("*").eq("id", auth_response.user.id).execute()
+        # Get user profile from database using service client (bypasses RLS)
+        user_response = supabase_service.table("users").select("*").eq("id", auth_response.user.id).execute()
         
         if not user_response.data:
             # Create profile if it doesn't exist
@@ -93,7 +94,7 @@ async def login(credentials: UserLogin, _: None = Depends(verify_supabase_config
                 "role": auth_response.user.user_metadata.get("role", "member"),
                 "created_at": auth_response.user.created_at.isoformat() if auth_response.user.created_at else datetime.utcnow().isoformat()
             }
-            supabase.table("users").insert(user_profile).execute()
+            supabase_service.table("users").insert(user_profile).execute()
         else:
             user_profile = user_response.data[0]
         
@@ -131,6 +132,7 @@ async def get_current_user(authorization: str = Header(...), _: None = Depends(v
     
     token = authorization.replace("Bearer ", "")
     supabase = get_supabase()
+    supabase_service = get_supabase_service()
     
     try:
         # Get user from token
@@ -139,8 +141,8 @@ async def get_current_user(authorization: str = Header(...), _: None = Depends(v
         if not user_response.user:
             raise HTTPException(status_code=401, detail="Invalid token")
         
-        # Get user profile
-        profile_response = supabase.table("users").select("*").eq("id", user_response.user.id).execute()
+        # Get user profile using service client (bypasses RLS)
+        profile_response = supabase_service.table("users").select("*").eq("id", user_response.user.id).execute()
         
         if not profile_response.data:
             raise HTTPException(status_code=404, detail="User profile not found")

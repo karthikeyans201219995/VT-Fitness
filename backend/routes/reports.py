@@ -4,7 +4,7 @@ Reports and analytics routes
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
 import logging
-from supabase_client import get_supabase
+from supabase_client import get_supabase, get_supabase_service
 from datetime import datetime, timedelta, date
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/reports", tags=["Reports"])
 @router.get("/dashboard")
 async def get_dashboard_stats() -> Dict[str, Any]:
     """Get dashboard statistics"""
-    supabase = get_supabase()
+    supabase = get_supabase_service()
     
     try:
         # Total members
@@ -52,7 +52,7 @@ async def get_dashboard_stats() -> Dict[str, Any]:
 @router.get("/revenue")
 async def get_revenue_report(days: int = 30) -> Dict[str, Any]:
     """Get revenue report for specified days"""
-    supabase = get_supabase()
+    supabase = get_supabase_service()
     
     try:
         start_date = (date.today() - timedelta(days=days)).isoformat()
@@ -86,7 +86,7 @@ async def get_revenue_report(days: int = 30) -> Dict[str, Any]:
 @router.get("/attendance")
 async def get_attendance_report(days: int = 30) -> Dict[str, Any]:
     """Get attendance report for specified days"""
-    supabase = get_supabase()
+    supabase = get_supabase_service()
     
     try:
         start_date = (date.today() - timedelta(days=days)).isoformat()
@@ -119,7 +119,7 @@ async def get_attendance_report(days: int = 30) -> Dict[str, Any]:
 @router.get("/members")
 async def get_members_report() -> Dict[str, Any]:
     """Get members statistics report"""
-    supabase = get_supabase()
+    supabase = get_supabase_service()
     
     try:
         members_response = supabase.table("members").select("status, gender, end_date").execute()

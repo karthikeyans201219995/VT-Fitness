@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Optional
 import logging
 from models import AttendanceCreate, AttendanceUpdate, AttendanceResponse
-from supabase_client import get_supabase
+from supabase_client import get_supabase, get_supabase_service
 from datetime import datetime, date
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ async def create_attendance(attendance: AttendanceCreate):
 @router.get("", response_model=List[AttendanceResponse])
 async def get_attendance(member_id: Optional[str] = None, date_from: Optional[str] = None, date_to: Optional[str] = None):
     """Get attendance records"""
-    supabase = get_supabase()
+    supabase = get_supabase_service()
     
     try:
         query = supabase.table("attendance").select("*, members(full_name)")

@@ -7,7 +7,7 @@ from pathlib import Path
 from supabase_client import init_supabase
 
 # Import route modules
-from routes import auth, members, plans, attendance, payments, settings, reports
+from routes import auth, members, plans, attendance, payments, settings, reports, trainers, qr_attendance, balance
 
 
 ROOT_DIR = Path(__file__).parent
@@ -36,6 +36,9 @@ api_router.include_router(attendance.router)
 api_router.include_router(payments.router)
 api_router.include_router(settings.router)
 api_router.include_router(reports.router)
+api_router.include_router(trainers.router)
+api_router.include_router(qr_attendance.router)
+api_router.include_router(balance.router)
 
 # Include the router in the main app
 app.include_router(api_router)

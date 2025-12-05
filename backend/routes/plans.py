@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 import logging
 from models import PlanCreate, PlanUpdate, PlanResponse
-from supabase_client import get_supabase
+from supabase_client import get_supabase, get_supabase_service
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/plans", tags=["Plans"])
 @router.post("", response_model=PlanResponse)
 async def create_plan(plan: PlanCreate):
     """Create a new plan"""
-    supabase = get_supabase()
+    supabase = get_supabase_service()
     
     try:
         plan_data = plan.model_dump()
@@ -33,7 +33,7 @@ async def create_plan(plan: PlanCreate):
 @router.get("", response_model=List[PlanResponse])
 async def get_plans(is_active: bool = None):
     """Get all plans"""
-    supabase = get_supabase()
+    supabase = get_supabase_service()
     
     try:
         query = supabase.table("plans").select("*")
@@ -53,7 +53,7 @@ async def get_plans(is_active: bool = None):
 @router.get("/{plan_id}", response_model=PlanResponse)
 async def get_plan(plan_id: str):
     """Get plan by ID"""
-    supabase = get_supabase()
+    supabase = get_supabase_service()
     
     try:
         response = supabase.table("plans").select("*").eq("id", plan_id).execute()
@@ -73,7 +73,7 @@ async def get_plan(plan_id: str):
 @router.put("/{plan_id}", response_model=PlanResponse)
 async def update_plan(plan_id: str, plan_update: PlanUpdate):
     """Update plan"""
-    supabase = get_supabase()
+    supabase = get_supabase_service()
     
     try:
         # Check if plan exists
@@ -97,7 +97,7 @@ async def update_plan(plan_id: str, plan_update: PlanUpdate):
 @router.delete("/{plan_id}")
 async def delete_plan(plan_id: str):
     """Delete plan"""
-    supabase = get_supabase()
+    supabase = get_supabase_service()
     
     try:
         # Check if plan exists
