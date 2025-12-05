@@ -23,6 +23,7 @@ const Sidebar = () => {
     { to: '/plans', icon: ClipboardList, label: 'Plans' },
     { to: '/attendance', icon: ScanLine, label: 'Attendance' },
     { to: '/payments', icon: DollarSign, label: 'Payments' },
+    { to: '/balance', icon: DollarSign, label: 'Balance' },
     { to: '/reports', icon: BarChart3, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];

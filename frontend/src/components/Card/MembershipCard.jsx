@@ -1,9 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { mockMembers } from '../../mockData';
+import { membersAPI } from '../../services/api';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
-import { Download, Printer } from 'lucide-react';
+import { Download, Printer, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -11,7 +11,45 @@ import jsPDF from 'jspdf';
 const MembershipCard = () => {
   const { user } = useAuth();
   const cardRef = useRef(null);
-  const memberData = mockMembers.find(m => m.email === user.email) || mockMembers[0];
+  const [memberData, setMemberData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchMemberData = async () => {
+      if (!user?.email) return;
+      
+      try {
+        setLoading(true);
+        // Fetch all members and find the one matching the logged-in user's email
+        const members = await membersAPI.getAll();
+        const currentMember = members.find(m => m.email === user.email);
+        
+        if (currentMember) {
+          // Format the data for display
+          setMemberData({
+            memberId: currentMember.member_id || 'N/A',
+            name: currentMember.full_name,
+            email: currentMember.email,
+            phone: currentMember.phone,
+            bloodGroup: currentMember.blood_group || 'O+',
+            plan: currentMember.plan_name || 'No Plan',
+            validUntil: currentMember.end_date ? new Date(currentMember.end_date).toISOString().split('T')[0] : 'N/A',
+            emergencyContact: currentMember.emergency_contact || currentMember.phone
+          });
+        } else {
+          setError('Member profile not found');
+        }
+      } catch (err) {
+        console.error('Failed to fetch member data:', err);
+        setError('Failed to load member data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMemberData();
+  }, [user]);
 
   const handleDownload = async () => {
     if (cardRef.current) {
@@ -42,6 +80,30 @@ const MembershipCard = () => {
       pdf.save(`${memberData.memberId}-membership-card.pdf`);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  if (error || !memberData) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Digital Membership Card</h1>
+          <p className="text-gray-400">Your digital gym membership card</p>
+        </div>
+        <Card className="bg-gray-900 border-gray-800">
+          <CardContent className="pt-6">
+            <p className="text-red-400">{error || 'Unable to load membership data'}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

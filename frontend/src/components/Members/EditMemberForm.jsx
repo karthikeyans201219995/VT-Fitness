@@ -6,25 +6,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { plansAPI } from '../../services/api';
 import { Loader2 } from 'lucide-react';
 
-const AddMemberForm = ({ onSubmit, onCancel }) => {
+const EditMemberForm = ({ member, onSubmit, onCancel }) => {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    password: '',
-    phone: '',
-    date_of_birth: '',
-    gender: '',
-    address: '',
-    blood_group: '',
-    emergency_contact: '',
-    emergency_phone: '',
-    medical_conditions: '',
-    plan_id: '',
-    start_date: new Date().toISOString().split('T')[0],
-    end_date: '',
-    status: 'active'
+    full_name: member.full_name || '',
+    phone: member.phone || '',
+    date_of_birth: member.date_of_birth ? member.date_of_birth.split('T')[0] : '',
+    gender: member.gender || '',
+    address: member.address || '',
+    blood_group: member.blood_group || '',
+    emergency_contact: member.emergency_contact || '',
+    emergency_phone: member.emergency_phone || '',
+    medical_conditions: member.medical_conditions || '',
+    plan_id: member.plan_id || '',
+    start_date: member.start_date ? member.start_date.split('T')[0] : '',
+    end_date: member.end_date ? member.end_date.split('T')[0] : '',
+    status: member.status || 'active'
   });
 
   useEffect(() => {
@@ -56,10 +54,7 @@ const AddMemberForm = ({ onSubmit, onCancel }) => {
         const startDate = new Date(formData.start_date);
         const endDate = new Date(startDate);
         endDate.setMonth(endDate.getMonth() + selectedPlan.duration_months);
-        setFormData(prev => ({ 
-          ...prev, 
-          end_date: endDate.toISOString().split('T')[0]
-        }));
+        setFormData(prev => ({ ...prev, end_date: endDate.toISOString().split('T')[0] }));
       }
     }
   };
@@ -71,8 +66,7 @@ const AddMemberForm = ({ onSubmit, onCancel }) => {
     const cleanedData = { ...formData };
     Object.keys(cleanedData).forEach(key => {
       if (cleanedData[key] === '') {
-        // Keep required fields as empty strings, convert optional fields to null
-        const optionalFields = ['password', 'date_of_birth', 'gender', 'address', 'blood_group', 
+        const optionalFields = ['date_of_birth', 'gender', 'address', 'blood_group', 
                                 'emergency_contact', 'emergency_phone', 'medical_conditions', 'plan_id'];
         if (optionalFields.includes(key)) {
           cleanedData[key] = null;
@@ -107,29 +101,14 @@ const AddMemberForm = ({ onSubmit, onCancel }) => {
         <div className="space-y-2">
           <Label className="text-gray-300">Email</Label>
           <Input
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="bg-gray-800 border-gray-700 text-white"
-            required
+            value={member.email}
+            className="bg-gray-800 border-gray-700 text-gray-500"
+            disabled
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label className="text-gray-300">Password (for member login)</Label>
-          <Input
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
-            className="bg-gray-800 border-gray-700 text-white"
-            placeholder="Leave empty for auto-generated password"
-          />
-          <p className="text-xs text-gray-500">If left empty, a random password will be generated</p>
-        </div>
         <div className="space-y-2">
           <Label className="text-gray-300">Phone</Label>
           <Input
@@ -141,23 +120,22 @@ const AddMemberForm = ({ onSubmit, onCancel }) => {
             required
           />
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-gray-300">Date of Birth</Label>
-        <Input
-          name="date_of_birth"
-          type="date"
-          value={formData.date_of_birth}
-          onChange={handleChange}
-          className="bg-gray-800 border-gray-700 text-white"
-        />
+        <div className="space-y-2">
+          <Label className="text-gray-300">Date of Birth</Label>
+          <Input
+            name="date_of_birth"
+            type="date"
+            value={formData.date_of_birth}
+            onChange={handleChange}
+            className="bg-gray-800 border-gray-700 text-white"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label className="text-gray-300">Gender</Label>
-          <Select onValueChange={(value) => handleSelectChange('gender', value)}>
+          <Select value={formData.gender} onValueChange={(value) => handleSelectChange('gender', value)}>
             <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="Select" />
             </SelectTrigger>
@@ -170,7 +148,7 @@ const AddMemberForm = ({ onSubmit, onCancel }) => {
         </div>
         <div className="space-y-2">
           <Label className="text-gray-300">Blood Group</Label>
-          <Select onValueChange={(value) => handleSelectChange('blood_group', value)}>
+          <Select value={formData.blood_group} onValueChange={(value) => handleSelectChange('blood_group', value)}>
             <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="Select" />
             </SelectTrigger>
@@ -246,8 +224,8 @@ const AddMemberForm = ({ onSubmit, onCancel }) => {
 
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label className="text-gray-300">Select Plan *</Label>
-          <Select onValueChange={(value) => handleSelectChange('plan_id', value)} required>
+          <Label className="text-gray-300">Select Plan</Label>
+          <Select value={formData.plan_id} onValueChange={(value) => handleSelectChange('plan_id', value)}>
             <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="Choose plan" />
             </SelectTrigger>
@@ -282,61 +260,16 @@ const AddMemberForm = ({ onSubmit, onCancel }) => {
         </div>
       </div>
 
-      <div className="border-t border-gray-700 pt-4 mt-4">
-        <h3 className="text-lg font-semibold text-white mb-4">Payment Information (Required)</h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label className="text-gray-300">Payment Amount</Label>
-            <Input
-              name="payment_amount"
-              type="number"
-              step="0.01"
-              value={formData.payment_amount}
-              onChange={handleChange}
-              className="bg-gray-800 border-gray-700 text-white"
-              required
-              placeholder="0.00"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-gray-300">Payment Method</Label>
-            <Select value={formData.payment_method} onValueChange={(value) => handleSelectChange('payment_method', value)}>
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
-                <SelectItem value="upi">UPI</SelectItem>
-                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-gray-300">Payment Date</Label>
-            <Input
-              name="payment_date"
-              type="date"
-              value={formData.payment_date}
-              onChange={handleChange}
-              className="bg-gray-800 border-gray-700 text-white"
-              required
-            />
-          </div>
-        </div>
-        <p className="text-sm text-yellow-500 mt-2">⚠️ Payment must be completed before member can be added</p>
-      </div>
-
       <div className="flex justify-end space-x-3 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} className="border-gray-700 text-white hover:bg-gray-700">
           Cancel
         </Button>
         <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-          Add Member & Process Payment
+          Update Member
         </Button>
       </div>
     </form>
   );
 };
 
-export default AddMemberForm;
+export default EditMemberForm;

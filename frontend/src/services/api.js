@@ -2,7 +2,7 @@
  * API Service for communicating with backend
  */
 
-const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -26,12 +26,14 @@ const apiRequest = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    const data = await response.json();
-
+    
     if (!response.ok) {
-      throw new Error(data.detail || data.message || 'An error occurred');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error Response:', errorData);
+      throw new Error(errorData.detail || errorData.message || `Request failed with status ${response.status}`);
     }
 
+    const data = await response.json();
     return data;
   } catch (error) {
     console.error('API Request Error:', error);
@@ -88,6 +90,8 @@ export const membersAPI = {
     apiRequest(`/api/members/${id}`, {
       method: 'DELETE',
     }),
+
+  getPassword: (id) => apiRequest(`/api/members/${id}/password`),
 };
 
 // Plans APIs
@@ -156,6 +160,12 @@ export const paymentsAPI = {
       body: JSON.stringify(paymentData),
     }),
 
+  createWithMember: (memberPaymentData) =>
+    apiRequest('/api/payments/with-member', {
+      method: 'POST',
+      body: JSON.stringify(memberPaymentData),
+    }),
+
   update: (id, paymentData) =>
     apiRequest(`/api/payments/${id}`, {
       method: 'PUT',
@@ -196,6 +206,45 @@ export const reportsAPI = {
   getMembers: () => apiRequest('/api/reports/members'),
 };
 
+// Trainers APIs
+export const trainersAPI = {
+  getAll: () => apiRequest('/api/trainers'),
+
+  getById: (id) => apiRequest(`/api/trainers/${id}`),
+
+  create: (trainerData) =>
+    apiRequest('/api/trainers', {
+      method: 'POST',
+      body: JSON.stringify(trainerData),
+    }),
+
+  update: (id, trainerData) =>
+    apiRequest(`/api/trainers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(trainerData),
+    }),
+
+  delete: (id) =>
+    apiRequest(`/api/trainers/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// Balance APIs
+export const balanceAPI = {
+  getMembersWithBalance: () => apiRequest('/api/balance/members-with-balance'),
+
+  getMemberBalance: (memberId) => apiRequest(`/api/balance/member/${memberId}`),
+
+  recordPartialPayment: (paymentData) =>
+    apiRequest('/api/balance/record-partial-payment', {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    }),
+
+  getSummary: () => apiRequest('/api/balance/summary'),
+};
+
 export default {
   auth: authAPI,
   members: membersAPI,
@@ -204,4 +253,6 @@ export default {
   payments: paymentsAPI,
   settings: settingsAPI,
   reports: reportsAPI,
+  trainers: trainersAPI,
+  balance: balanceAPI,
 };
