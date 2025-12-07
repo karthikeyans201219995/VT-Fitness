@@ -41,17 +41,31 @@ const Signup = () => {
     }
 
     setLoading(true);
-    const result = signup(formData);
-    
-    if (result.success) {
+    try {
+      const result = await signup(formData);
+      
+      if (result.success) {
+        toast({
+          title: "Account Created",
+          description: `Welcome to FitLife Gym, ${result.user.name}!`,
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to create account",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Account Created",
-        description: `Welcome to FitLife Gym, ${result.user.name}!`,
+        title: "Error",
+        description: error.message || "An error occurred during signup",
+        variant: "destructive",
       });
-      navigate('/dashboard');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (

@@ -21,6 +21,7 @@ import AttendanceTracker from "./components/Attendance/AttendanceTracker";
 import PaymentsList from "./components/Payments/PaymentsList";
 import ReportsAnalytics from "./components/Reports/ReportsAnalytics";
 import GymSettings from "./components/Settings/GymSettings";
+import BalanceManagement from "./components/Balance/BalanceManagement";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -144,6 +145,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <AppLayout>
               <GymSettings />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/balance"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <BalanceManagement />
             </AppLayout>
           </ProtectedRoute>
         }

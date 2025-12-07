@@ -20,23 +20,31 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
-    const result = login(email, password);
-    
-    if (result.success) {
+    try {
+      const result = await login(email, password);
+      
+      if (result.success) {
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${result.user.name}!`,
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: "Login Failed",
+          description: result.message || "Invalid credentials",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Login Successful",
-        description: `Welcome back, ${result.user.name}!`,
-      });
-      navigate('/dashboard');
-    } else {
-      toast({
-        title: "Login Failed",
-        description: result.message,
+        title: "Error",
+        description: error.message || "Failed to connect to server",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (

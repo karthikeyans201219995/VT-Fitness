@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 # Supabase client instance
 supabase_client: Optional[Client] = None
+supabase_service_client: Optional[Client] = None
 
 
 def init_supabase() -> Client:
@@ -42,6 +43,28 @@ def get_supabase() -> Optional[Client]:
     if supabase_client is None:
         supabase_client = init_supabase()
     return supabase_client
+
+
+def get_supabase_service() -> Optional[Client]:
+    """Get Supabase service client (bypasses RLS)"""
+    global supabase_service_client
+    
+    if supabase_service_client is None:
+        supabase_url = os.environ.get('SUPABASE_URL')
+        supabase_service_key = os.environ.get('SUPABASE_SERVICE_KEY')
+        
+        if not supabase_url or not supabase_service_key:
+            logger.warning("Supabase service credentials not configured")
+            return None
+        
+        try:
+            supabase_service_client = create_client(supabase_url, supabase_service_key)
+            logger.info("Supabase service client initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize Supabase service client: {str(e)}")
+            return None
+    
+    return supabase_service_client
 
 
 def check_supabase_configured() -> bool:

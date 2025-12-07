@@ -39,6 +39,7 @@ const AttendanceTracker = () => {
 
   const filteredAttendance = attendance.filter(
     (record) =>
+      record.member_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       record.member_id?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -52,28 +53,9 @@ const AttendanceTracker = () => {
   };
 
   const handleScanSuccess = async (data) => {
-    try {
-      const memberData = JSON.parse(data);
-      
-      const newRecord = {
-        member_id: memberData.memberId,
-        check_in_time: new Date().toISOString(),
-      };
-      
-      await attendanceAPI.create(newRecord);
-      toast({
-        title: 'Success',
-        description: 'Check-in recorded successfully',
-      });
-      setShowScanner(false);
-      fetchAttendance();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to record check-in',
-        variant: 'destructive',
-      });
-    }
+    // QR scan was successful, refresh attendance list
+    setShowScanner(false);
+    fetchAttendance();
   };
 
   const handleCheckout = async (recordId) => {
@@ -171,7 +153,7 @@ const AttendanceTracker = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
               <Input
-                placeholder="Search by member ID..."
+                placeholder="Search by member name or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-600"
@@ -193,7 +175,7 @@ const AttendanceTracker = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold text-white">Member: {record.member_id}</h3>
+                        <h3 className="text-lg font-semibold text-white">{record.member_name || `Member: ${record.member_id}`}</h3>
                         <Badge className={record.check_out_time ? 'bg-gray-600' : 'bg-green-600'}>
                           {record.check_out_time ? 'Checked Out' : 'In Gym'}
                         </Badge>
