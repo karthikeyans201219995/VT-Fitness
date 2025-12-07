@@ -9,7 +9,7 @@ from datetime import datetime, date, timedelta
 import sys
 
 # Configuration
-BASE_URL = "https://fitness-hub-145.preview.emergentagent.com/api"
+BASE_URL = "https://gymopspro.preview.emergentagent.com/api"
 HEADERS = {"Content-Type": "application/json"}
 
 def test_basic_endpoints():
