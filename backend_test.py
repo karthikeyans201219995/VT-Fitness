@@ -11,7 +11,7 @@ import sys
 import os
 
 # Configuration
-BASE_URL = "https://gymopspro.preview.emergentagent.com/api"
+BASE_URL = "https://fitlife-extended.preview.emergentagent.com/api"
 HEADERS = {"Content-Type": "application/json"}
 
 # Test data

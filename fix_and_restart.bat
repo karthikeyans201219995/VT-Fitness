@@ -19,7 +19,7 @@ echo ========================================
 echo.
 echo The backend is now running with CORS enabled for:
 echo - http://localhost:3000 (your frontend)
-echo - https://gymopspro.preview.emergentagent.com
+echo - https://fitlife-extended.preview.emergentagent.com
 echo.
 echo Next steps:
 echo 1. Wait 5 seconds for backend to start

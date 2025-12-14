@@ -22,7 +22,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:8000",
-        "https://gymopspro.preview.emergentagent.com",
+        "https://fitlife-extended.preview.emergentagent.com",
         "*"  # Allow all origins for development
     ],
     allow_credentials=True,
