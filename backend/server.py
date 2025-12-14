@@ -60,6 +60,15 @@ api_router.include_router(qr_attendance.router)
 api_router.include_router(balance.router)
 api_router.include_router(invoices.router)
 api_router.include_router(installments.router)
+# Advanced features
+api_router.include_router(workout_plans.router)
+api_router.include_router(diet_plans.router)
+api_router.include_router(equipment.router)
+api_router.include_router(classes.router)
+api_router.include_router(class_bookings.router)
+api_router.include_router(audit_logs.router)
+api_router.include_router(export.router)
+api_router.include_router(two_factor.router)
 
 # Include the router in the main app
 app.include_router(api_router)
