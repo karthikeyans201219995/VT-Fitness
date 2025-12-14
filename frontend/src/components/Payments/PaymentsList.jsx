@@ -109,12 +109,47 @@ const PaymentsList = () => {
     }
   };
 
-  const handleDownloadInvoice = (payment) => {
-    // Mock download - in real app, generate PDF invoice
-    toast({
-      title: 'Info',
-      description: `Downloading invoice ${payment.invoice_number}`,
-    });
+  const handleDownloadInvoice = async (payment) => {
+    try {
+      // Call the invoice download API
+      const response = await fetch(`http://localhost:8000/api/invoices/payment/${payment.id}/download`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download invoice');
+      }
+
+      // Get the PDF blob
+      const blob = await response.blob();
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `invoice_${payment.invoice_number || payment.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Success',
+        description: `Invoice downloaded successfully`,
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to download invoice. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getStatusColor = (status) => {
@@ -228,7 +263,7 @@ const PaymentsList = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
                       <div className="text-gray-400">
-                        <span className="font-medium">Member:</span> {payment.member_id}
+                        <span className="font-medium">Member:</span> {payment.member_name || payment.member_id}
                       </div>
                       <div className="text-gray-400">
                         <span className="font-medium">Amount:</span> ${parseFloat(payment.amount).toFixed(2)}
@@ -240,6 +275,12 @@ const PaymentsList = () => {
                         <span className="font-medium">Date:</span> {new Date(payment.payment_date).toLocaleDateString()}
                       </div>
                     </div>
+                    {payment.is_partial && payment.remaining_balance > 0 && (
+                      <div className="mt-2 p-2 bg-yellow-900/20 border border-yellow-800 rounded text-sm">
+                        <span className="text-yellow-400 font-medium">⚠️ Partial Payment:</span>
+                        <span className="text-gray-300"> Balance Due: ${parseFloat(payment.remaining_balance).toFixed(2)}</span>
+                      </div>
+                    )}
                     {payment.notes && (
                       <div className="mt-2 text-sm text-gray-500">
                         Note: {payment.notes}

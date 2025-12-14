@@ -1,8 +1,8 @@
 """
 API routes for invoice generation and management
 """
-from fastapi import APIRouter, HTTPException, Depends, status, Response
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.responses import Response, StreamingResponse
 from typing import List, Optional
 from datetime import datetime, date
 import io
@@ -19,7 +19,7 @@ from models_phase1 import (
 from supabase_client import get_supabase
 from services.invoice_service import invoice_service
 
-router = APIRouter(prefix="/api/invoices", tags=["invoices"])
+router = APIRouter(prefix="/invoices", tags=["invoices"])
 
 
 @router.post("/", response_model=dict, status_code=status.HTTP_201_CREATED)
@@ -338,6 +338,79 @@ async def generate_invoice_from_payment(payment_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating invoice: {str(e)}")
+
+
+@router.get("/payment/{payment_id}/download")
+async def download_invoice_from_payment(payment_id: str):
+    """Generate and download invoice from payment ID"""
+    try:
+        supabase = get_supabase()
+        
+        # Get payment with member details
+        payment_result = supabase.table("payments").select("*, members!inner(full_name, email, phone, address), plans(name, price)").eq("id", payment_id).execute()
+        
+        if not payment_result.data:
+            raise HTTPException(status_code=404, detail="Payment not found")
+        
+        payment = payment_result.data[0]
+        member = payment["members"]
+        plan = payment.get("plans")
+        
+        # Check if invoice already exists for this payment
+        existing_invoice = supabase.table("invoices").select("*").eq("payment_id", payment_id).execute()
+        
+        if existing_invoice.data:
+            # Use existing invoice
+            invoice_data = existing_invoice.data[0]
+        else:
+            # Create invoice data on-the-fly
+            invoice_number = f"INV-{datetime.now().strftime('%Y%m%d')}-{payment_id[:8].upper()}"
+            
+            items = [{
+                "name": plan["name"] if plan else "Membership Payment",
+                "description": f"Payment for {plan['name']}" if plan else "Gym membership payment",
+                "quantity": 1,
+                "rate": payment["amount"],
+                "amount": payment["amount"]
+            }]
+            
+            # Calculate GST
+            tax_calc = invoice_service.calculate_gst(payment["amount"], 18.0, same_state=True)
+            
+            invoice_data = {
+                "invoice_number": invoice_number,
+                "invoice_date": payment["payment_date"],
+                "due_date": payment["payment_date"],
+                "subtotal": payment["amount"],
+                "discount_amount": 0,
+                "tax_rate": 18.0,
+                "tax_amount": tax_calc["tax_amount"],
+                "cgst": tax_calc["cgst"],
+                "sgst": tax_calc["sgst"],
+                "igst": tax_calc["igst"],
+                "total_amount": tax_calc["total"],
+                "items": items,
+                "notes": f"Payment received via {payment['payment_method'].upper()}",
+                "terms": "Thank you for your payment.",
+                "status": "paid"
+            }
+        
+        # Generate PDF
+        pdf_bytes = invoice_service.generate_invoice_pdf(invoice_data, member)
+        
+        # Return PDF as download
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="invoice_{invoice_data["invoice_number"]}.pdf"'
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating invoice PDF: {str(e)}")
 
 
 @router.get("/analytics/summary", response_model=dict)

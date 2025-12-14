@@ -18,7 +18,9 @@ def send_welcome_email(
     plan_name: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    amount: Optional[float] = None
+    amount: Optional[float] = None,
+    balance_due: Optional[float] = None,
+    member_portal_url: Optional[str] = None
 ) -> bool:
     """
     Send welcome email with login credentials to new member
@@ -31,6 +33,8 @@ def send_welcome_email(
         start_date: Membership start date
         end_date: Membership end date
         amount: Payment amount
+        balance_due: Remaining balance if partial payment
+        member_portal_url: URL to member portal login page
     
     Returns:
         bool: True if email sent successfully, False otherwise
@@ -110,9 +114,25 @@ def send_welcome_email(
                             {f'<tr><td>Start Date:</td><td>{start_date}</td></tr>' if start_date else ''}
                             {f'<tr><td>End Date:</td><td>{end_date}</td></tr>' if end_date else ''}
                             {f'<tr><td>Amount Paid:</td><td>${amount:.2f}</td></tr>' if amount else ''}
+                            {f'<tr><td style="color: #dc2626;">Balance Due:</td><td style="color: #dc2626; font-weight: bold;">${balance_due:.2f}</td></tr>' if balance_due and balance_due > 0 else ''}
                         </table>
                     </div>
                     ''' if plan_name or start_date or end_date or amount else ''}
+                    
+                    {f'''
+                    <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+                        <p style="color: #92400e; margin: 0;">
+                            <strong>⚠️ Payment Notice:</strong> You have a remaining balance of <strong>${balance_due:.2f}</strong>. 
+                            Your membership will be activated once the full payment is received.
+                        </p>
+                    </div>
+                    ''' if balance_due and balance_due > 0 else ''}
+                    
+                    {f'''
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{member_portal_url}" class="button">Access Member Portal</a>
+                    </div>
+                    ''' if member_portal_url else ''}
                     
                     <p>If you have any questions or need assistance, please don't hesitate to contact us.</p>
                     

@@ -21,7 +21,7 @@ from models_phase1 import (
 )
 from supabase_client import get_supabase
 
-router = APIRouter(prefix="/api/installments", tags=["installments"])
+router = APIRouter(prefix="/installments", tags=["installments"])
 
 
 @router.post("/plans", response_model=dict, status_code=status.HTTP_201_CREATED)

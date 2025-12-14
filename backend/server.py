@@ -7,7 +7,7 @@ from pathlib import Path
 from supabase_client import init_supabase
 
 # Import route modules
-from routes import auth, members, plans, attendance, payments, settings, reports, trainers, qr_attendance, balance
+from routes import auth, members, plans, attendance, payments, settings, reports, trainers, qr_attendance, balance, invoices, installments
 
 
 ROOT_DIR = Path(__file__).parent
@@ -15,6 +15,21 @@ load_dotenv(ROOT_DIR / '.env')
 
 # Create the main app without a prefix
 app = FastAPI(title="Gym Management System API", version="1.0.0")
+
+# Add CORS middleware FIRST (before routes)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "https://gymopspro.preview.emergentagent.com",
+        "*"  # Allow all origins for development
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -39,17 +54,11 @@ api_router.include_router(reports.router)
 api_router.include_router(trainers.router)
 api_router.include_router(qr_attendance.router)
 api_router.include_router(balance.router)
+api_router.include_router(invoices.router)
+api_router.include_router(installments.router)
 
 # Include the router in the main app
 app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Configure logging
 logging.basicConfig(

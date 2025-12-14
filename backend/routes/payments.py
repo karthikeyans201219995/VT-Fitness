@@ -4,6 +4,7 @@ Payments management routes
 from fastapi import APIRouter, HTTPException
 from typing import List, Optional
 import logging
+import os
 from models import PaymentCreate, PaymentUpdate, PaymentResponse, MemberWithPaymentCreate
 from supabase_client import get_supabase, get_supabase_service
 from datetime import datetime
@@ -28,12 +29,14 @@ async def create_member_with_payment(data: MemberWithPaymentCreate):
         if existing.data:
             raise HTTPException(status_code=400, detail="Member with this email already exists")
         
-        # Get plan name if plan_id provided
+        # Get plan details if plan_id provided
         plan_name = None
+        plan_price = 0
         if data.plan_id:
-            plan_response = supabase.table("plans").select("name").eq("id", data.plan_id).execute()
+            plan_response = supabase.table("plans").select("name, price").eq("id", data.plan_id).execute()
             if plan_response.data:
                 plan_name = plan_response.data[0]["name"]
+                plan_price = float(plan_response.data[0]["price"])
         
         # Create user account for member
         user_id = None
@@ -74,7 +77,21 @@ async def create_member_with_payment(data: MemberWithPaymentCreate):
             logger.warning(f"Failed to create auth user: {str(auth_error)}")
             user_id = None
         
-        # Create member
+        # Calculate balance tracking
+        total_amount_due = plan_price if plan_price > 0 else data.amount
+        amount_paid = data.amount
+        balance_due = total_amount_due - amount_paid
+        
+        # Determine membership status based on payment
+        membership_status = data.status.value
+        if balance_due > 0:
+            # If there's a balance, set status to inactive until fully paid
+            membership_status = "inactive"
+        elif balance_due <= 0:
+            # Fully paid, set to active
+            membership_status = "active"
+        
+        # Create member with balance tracking
         member_data = {
             "user_id": user_id,
             "full_name": data.full_name,
@@ -90,7 +107,10 @@ async def create_member_with_payment(data: MemberWithPaymentCreate):
             "plan_id": data.plan_id,
             "start_date": data.start_date.isoformat(),
             "end_date": data.end_date.isoformat(),
-            "status": data.status.value,
+            "status": membership_status,
+            "total_amount_due": total_amount_due,
+            "amount_paid": amount_paid,
+            "balance_due": balance_due,
             "created_at": datetime.utcnow().isoformat()
         }
         
@@ -118,8 +138,11 @@ async def create_member_with_payment(data: MemberWithPaymentCreate):
                 logger.warning(f"Failed to store encrypted password: {str(pwd_error)}")
                 # Don't fail the whole operation if password storage fails
         
-        # Create payment record
+        # Create payment record with balance tracking
         try:
+            is_partial = balance_due > 0
+            payment_type = "partial" if is_partial else "initial"
+            
             payment_data = {
                 "member_id": member_id,
                 "amount": data.amount,
@@ -128,6 +151,9 @@ async def create_member_with_payment(data: MemberWithPaymentCreate):
                 "plan_id": data.plan_id,
                 "description": data.notes or f"Initial payment for {data.full_name}",
                 "status": data.payment_status.value,
+                "payment_type": payment_type,
+                "is_partial": is_partial,
+                "remaining_balance": balance_due,
                 "created_at": datetime.utcnow().isoformat()
             }
             payment_response = supabase.table("payments").insert(payment_data).execute()
@@ -136,9 +162,12 @@ async def create_member_with_payment(data: MemberWithPaymentCreate):
             result["member_name"] = data.full_name
             result["plan_name"] = plan_name
             
-            # Send welcome email with login credentials
+            # Send welcome email with login credentials and membership link
             if generated_password:
                 try:
+                    # Get the member portal URL from environment or use default
+                    member_portal_url = os.environ.get('MEMBER_PORTAL_URL', 'http://localhost:3000/login')
+                    
                     email_sent = send_welcome_email(
                         to_email=data.email,
                         member_name=data.full_name,
@@ -146,7 +175,9 @@ async def create_member_with_payment(data: MemberWithPaymentCreate):
                         plan_name=plan_name,
                         start_date=data.start_date.strftime('%B %d, %Y'),
                         end_date=data.end_date.strftime('%B %d, %Y'),
-                        amount=data.amount
+                        amount=data.amount,
+                        balance_due=balance_due,
+                        member_portal_url=member_portal_url
                     )
                     if email_sent:
                         logger.info(f"Welcome email sent to {data.email}")

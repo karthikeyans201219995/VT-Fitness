@@ -81,6 +81,12 @@ const AddPaymentForm = ({ onSubmit, onCancel }) => {
     }
   };
 
+  // Calculate balance
+  const selectedPlan = plans.find(p => p.id === formData.plan_id);
+  const totalDue = selectedPlan ? selectedPlan.price : 0;
+  const amountPaying = parseFloat(formData.amount) || 0;
+  const balance = totalDue - amountPaying;
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -317,6 +323,9 @@ const AddPaymentForm = ({ onSubmit, onCancel }) => {
             required
             placeholder="0.00"
           />
+          {selectedPlan && (
+            <p className="text-xs text-gray-400">Plan price: ${selectedPlan.price}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label className="text-gray-300">Payment Method *</Label>
@@ -344,6 +353,33 @@ const AddPaymentForm = ({ onSubmit, onCancel }) => {
           />
         </div>
       </div>
+
+      {/* Balance Information */}
+      {selectedPlan && amountPaying > 0 && (
+        <div className={`p-4 rounded-lg border ${balance > 0 ? 'bg-yellow-900/20 border-yellow-800' : 'bg-green-900/20 border-green-800'}`}>
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div>
+              <p className="text-gray-400">Total Due</p>
+              <p className="text-white font-semibold text-lg">${totalDue.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-gray-400">Paying Now</p>
+              <p className="text-white font-semibold text-lg">${amountPaying.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-gray-400">Balance</p>
+              <p className={`font-semibold text-lg ${balance > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                ${balance.toFixed(2)}
+              </p>
+            </div>
+          </div>
+          {balance > 0 && (
+            <p className="text-yellow-400 text-xs mt-2">
+              ⚠️ Partial payment: Member status will be "Inactive" until full payment is received.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
