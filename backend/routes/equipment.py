@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Optional
 from pydantic import BaseModel
 from datetime import date
-from supabase_client import get_supabase_client
+from supabase_client import get_supabase
 from routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/equipment", tags=["equipment"])
@@ -52,7 +52,7 @@ async def get_equipment(
 ):
     """Get all equipment"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         query = supabase.table("equipment").select("*")
         
         if category:
@@ -75,7 +75,7 @@ async def get_equipment_by_id(
 ):
     """Get specific equipment"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("equipment").select("*").eq("id", equipment_id).execute()
         
         if not response.data:
@@ -99,7 +99,7 @@ async def create_equipment(
         if current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Only admins can add equipment")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         equipment_data = equipment.dict()
         # Convert date objects to strings
@@ -143,7 +143,7 @@ async def update_equipment(
         if current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Only admins can update equipment")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         existing = supabase.table("equipment").select("*").eq("id", equipment_id).execute()
         if not existing.data:
@@ -186,7 +186,7 @@ async def delete_equipment(
         if current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Only admins can delete equipment")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         existing = supabase.table("equipment").select("*").eq("id", equipment_id).execute()
         if not existing.data:
@@ -215,7 +215,7 @@ async def delete_equipment(
 async def get_equipment_stats(current_user: dict = Depends(get_current_user)):
     """Get equipment statistics"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         all_equipment = supabase.table("equipment").select("*").execute()
         
@@ -241,7 +241,7 @@ async def log_audit(user_id: str, user_email: str, action: str, entity_type: str
                     entity_id: str, request: Request, changes: dict = None):
     """Log audit entry"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         audit_data = {
             "user_id": user_id,
             "user_email": user_email,

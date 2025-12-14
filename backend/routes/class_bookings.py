@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Optional
 from pydantic import BaseModel
 from datetime import date, datetime
-from supabase_client import get_supabase_client
+from supabase_client import get_supabase
 from routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/class-bookings", tags=["class_bookings"])
@@ -33,7 +33,7 @@ async def get_bookings(
 ):
     """Get all bookings"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         query = supabase.table("class_bookings").select("*, classes(*), members(*)")
         
         # Members can only see their own bookings
@@ -64,7 +64,7 @@ async def get_booking(
 ):
     """Get specific booking"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("class_bookings")\
             .select("*, classes(*), members(*)")\
             .eq("id", booking_id)\
@@ -94,7 +94,7 @@ async def create_booking(
 ):
     """Create a new class booking"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         # Members can only book for themselves
         if current_user["role"] == "member" and booking.member_id != current_user["id"]:
@@ -168,7 +168,7 @@ async def update_booking(
 ):
     """Update booking status (e.g., cancel booking)"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         # Get existing booking
         existing = supabase.table("class_bookings").select("*").eq("id", booking_id).execute()
@@ -219,7 +219,7 @@ async def delete_booking(
         if current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Only admins can delete bookings")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         existing = supabase.table("class_bookings").select("*").eq("id", booking_id).execute()
         if not existing.data:
@@ -256,7 +256,7 @@ async def get_member_upcoming_bookings(
         if current_user["role"] == "member" and current_user["id"] != member_id:
             raise HTTPException(status_code=403, detail="Access denied")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         today = date.today().isoformat()
         
         response = supabase.table("class_bookings")\
@@ -278,7 +278,7 @@ async def log_audit(user_id: str, user_email: str, action: str, entity_type: str
                     entity_id: str, request: Request, changes: dict = None):
     """Log audit entry"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         audit_data = {
             "user_id": user_id,
             "user_email": user_email,

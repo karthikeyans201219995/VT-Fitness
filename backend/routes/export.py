@@ -8,7 +8,7 @@ from datetime import date, datetime
 import csv
 import io
 import pandas as pd
-from supabase_client import get_supabase_client
+from supabase_client import get_supabase
 from routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/export", tags=["export"])
@@ -24,7 +24,7 @@ async def export_members(
         if current_user["role"] not in ["admin", "trainer"]:
             raise HTTPException(status_code=403, detail="Access denied")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("members").select("*").order("created_at", desc=True).execute()
         
         if not response.data:
@@ -79,7 +79,7 @@ async def export_payments(
         if current_user["role"] not in ["admin"]:
             raise HTTPException(status_code=403, detail="Only admins can export payments")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         query = supabase.table("payments").select("*")
         
         if start_date:
@@ -133,7 +133,7 @@ async def export_attendance(
         if current_user["role"] not in ["admin", "trainer"]:
             raise HTTPException(status_code=403, detail="Access denied")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         query = supabase.table("attendance").select("*")
         
         if start_date:
@@ -185,7 +185,7 @@ async def export_classes(
         if current_user["role"] not in ["admin", "trainer"]:
             raise HTTPException(status_code=403, detail="Access denied")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("classes").select("*").order("schedule_day").order("schedule_time").execute()
         
         if not response.data:
@@ -230,7 +230,7 @@ async def export_equipment(
         if current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Only admins can export equipment")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("equipment").select("*").order("name").execute()
         
         if not response.data:

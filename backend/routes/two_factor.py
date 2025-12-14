@@ -7,7 +7,7 @@ from pydantic import BaseModel
 import random
 import string
 from datetime import datetime, timedelta
-from supabase_client import get_supabase_client
+from supabase_client import get_supabase
 from routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/2fa", tags=["two_factor"])
@@ -40,7 +40,7 @@ async def send_sms_via_supabase(phone_number: str, message: str):
     Note: This requires Supabase Edge Function to be deployed
     """
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         # Call Supabase Edge Function for SMS
         # The edge function should handle the actual SMS sending via Twilio
@@ -120,7 +120,7 @@ async def verify_otp(
             raise HTTPException(status_code=400, detail="Invalid OTP")
         
         # Mark phone as verified
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         supabase.table("members").update({
             "phone_verified": True,
             "phone": phone_number
@@ -146,7 +146,7 @@ async def enable_2fa(
 ):
     """Enable 2FA for user"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         # Check if phone is verified
         member = supabase.table("members").select("*").eq("id", current_user["id"]).execute()
@@ -180,7 +180,7 @@ async def disable_2fa(
 ):
     """Disable 2FA for user"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         # Disable 2FA
         supabase.table("members").update({
@@ -201,7 +201,7 @@ async def get_2fa_status(
 ):
     """Get 2FA status for current user"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         member = supabase.table("members").select("phone_verified, two_factor_enabled, phone").eq("id", current_user["id"]).execute()
         

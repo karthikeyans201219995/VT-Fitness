@@ -5,7 +5,7 @@ Handles viewing system audit logs (admin only)
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 from datetime import date, datetime, timedelta
-from supabase_client import get_supabase_client
+from supabase_client import get_supabase
 from routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/audit-logs", tags=["audit_logs"])
@@ -26,7 +26,7 @@ async def get_audit_logs(
         if current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Only admins can view audit logs")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         query = supabase.table("audit_logs").select("*")
         
         if user_id:
@@ -61,7 +61,7 @@ async def get_audit_stats(
         if current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Only admins can view audit logs")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         start_date = (datetime.now() - timedelta(days=days)).isoformat()
         
         response = supabase.table("audit_logs")\
@@ -117,7 +117,7 @@ async def get_entity_audit_history(
         if current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Only admins can view audit logs")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("audit_logs")\
             .select("*")\
             .eq("entity_type", entity_type)\

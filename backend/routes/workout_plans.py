@@ -7,7 +7,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 import os
-from supabase_client import get_supabase_client
+from supabase_client import get_supabase
 from routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/workout-plans", tags=["workout_plans"])
@@ -53,7 +53,7 @@ async def get_workout_plans(
 ):
     """Get all workout plans (filtered by member_id if provided)"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         query = supabase.table("workout_plans").select("*")
         
         # Filter by role
@@ -82,7 +82,7 @@ async def get_workout_plan(
 ):
     """Get a specific workout plan"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("workout_plans").select("*").eq("id", plan_id).execute()
         
         if not response.data:
@@ -112,7 +112,7 @@ async def create_workout_plan(
         if current_user["role"] not in ["admin", "trainer"]:
             raise HTTPException(status_code=403, detail="Only trainers and admins can create workout plans")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         # Convert exercises to dict for JSONB storage
         exercises_data = [exercise.dict() for exercise in plan.exercises]
@@ -162,7 +162,7 @@ async def update_workout_plan(
         if current_user["role"] not in ["admin", "trainer"]:
             raise HTTPException(status_code=403, detail="Only trainers and admins can update workout plans")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         # Get existing plan
         existing = supabase.table("workout_plans").select("*").eq("id", plan_id).execute()
@@ -219,7 +219,7 @@ async def delete_workout_plan(
         if current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Only admins can delete workout plans")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         # Get existing plan for audit
         existing = supabase.table("workout_plans").select("*").eq("id", plan_id).execute()
@@ -257,7 +257,7 @@ async def get_member_active_plans(
         if current_user["role"] == "member" and current_user["id"] != member_id:
             raise HTTPException(status_code=403, detail="Access denied")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("workout_plans")\
             .select("*")\
             .eq("member_id", member_id)\
@@ -276,7 +276,7 @@ async def log_audit(user_id: str, user_email: str, action: str, entity_type: str
                     entity_id: str, request: Request, changes: dict = None):
     """Log audit entry"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         audit_data = {
             "user_id": user_id,
             "user_email": user_email,

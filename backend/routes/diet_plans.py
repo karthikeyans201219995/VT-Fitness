@@ -5,7 +5,7 @@ Handles CRUD operations for member diet/nutrition plans
 from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List, Optional
 from pydantic import BaseModel
-from supabase_client import get_supabase_client
+from supabase_client import get_supabase
 from routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/diet-plans", tags=["diet_plans"])
@@ -63,7 +63,7 @@ async def get_diet_plans(
 ):
     """Get all diet plans"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         query = supabase.table("diet_plans").select("*")
         
         if current_user["role"] == "member":
@@ -89,7 +89,7 @@ async def get_diet_plan(
 ):
     """Get a specific diet plan"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("diet_plans").select("*").eq("id", plan_id).execute()
         
         if not response.data:
@@ -118,7 +118,7 @@ async def create_diet_plan(
         if current_user["role"] not in ["admin", "trainer"]:
             raise HTTPException(status_code=403, detail="Only trainers and admins can create diet plans")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         plan_data = {
             "member_id": plan.member_id,
@@ -168,7 +168,7 @@ async def update_diet_plan(
         if current_user["role"] not in ["admin", "trainer"]:
             raise HTTPException(status_code=403, detail="Only trainers and admins can update diet plans")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         existing = supabase.table("diet_plans").select("*").eq("id", plan_id).execute()
         if not existing.data:
@@ -228,7 +228,7 @@ async def delete_diet_plan(
         if current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Only admins can delete diet plans")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         existing = supabase.table("diet_plans").select("*").eq("id", plan_id).execute()
         if not existing.data:
@@ -263,7 +263,7 @@ async def get_member_active_diet_plans(
         if current_user["role"] == "member" and current_user["id"] != member_id:
             raise HTTPException(status_code=403, detail="Access denied")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("diet_plans")\
             .select("*")\
             .eq("member_id", member_id)\
@@ -282,7 +282,7 @@ async def log_audit(user_id: str, user_email: str, action: str, entity_type: str
                     entity_id: str, request: Request, changes: dict = None):
     """Log audit entry"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         audit_data = {
             "user_id": user_id,
             "user_email": user_email,

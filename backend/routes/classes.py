@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Optional
 from pydantic import BaseModel
 from datetime import time
-from supabase_client import get_supabase_client
+from supabase_client import get_supabase
 from routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/classes", tags=["classes"])
@@ -53,7 +53,7 @@ async def get_classes(
 ):
     """Get all classes"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         query = supabase.table("classes").select("*")
         
         if category:
@@ -78,7 +78,7 @@ async def get_class_by_id(
 ):
     """Get specific class"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("classes").select("*").eq("id", class_id).execute()
         
         if not response.data:
@@ -102,7 +102,7 @@ async def create_class(
         if current_user["role"] not in ["admin", "trainer"]:
             raise HTTPException(status_code=403, detail="Only admins and trainers can create classes")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         class_dict = class_data.dict()
         response = supabase.table("classes").insert(class_dict).execute()
@@ -135,7 +135,7 @@ async def update_class(
         if current_user["role"] not in ["admin", "trainer"]:
             raise HTTPException(status_code=403, detail="Only admins and trainers can update classes")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         existing = supabase.table("classes").select("*").eq("id", class_id).execute()
         if not existing.data:
@@ -172,7 +172,7 @@ async def delete_class(
         if current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Only admins can delete classes")
         
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         
         existing = supabase.table("classes").select("*").eq("id", class_id).execute()
         if not existing.data:
@@ -204,7 +204,7 @@ async def get_class_bookings(
 ):
     """Get bookings for a specific class"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         response = supabase.table("class_bookings")\
             .select("*, members(*)")\
             .eq("class_id", class_id)\
@@ -220,7 +220,7 @@ async def log_audit(user_id: str, user_email: str, action: str, entity_type: str
                     entity_id: str, request: Request, changes: dict = None):
     """Log audit entry"""
     try:
-        supabase = get_supabase_client()
+        supabase = get_supabase()
         audit_data = {
             "user_id": user_id,
             "user_email": user_email,
