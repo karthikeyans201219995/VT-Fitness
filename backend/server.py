@@ -7,7 +7,11 @@ from pathlib import Path
 from supabase_client import init_supabase
 
 # Import route modules
-from routes import auth, members, plans, attendance, payments, settings, reports, trainers, qr_attendance, balance, invoices, installments
+from routes import (
+    auth, members, plans, attendance, payments, settings, reports, trainers, 
+    qr_attendance, balance, invoices, installments, workout_plans, diet_plans,
+    equipment, classes, class_bookings, audit_logs, export, two_factor
+)
 
 
 ROOT_DIR = Path(__file__).parent
