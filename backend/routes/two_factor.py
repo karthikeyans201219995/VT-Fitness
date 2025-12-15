@@ -82,7 +82,7 @@ async def send_otp(
         }
         
         # Send SMS
-        message = f"Your FitLife Gym verification code is: {otp}. Valid for 5 minutes."
+        message = f"Your VI FITNESS verification code is: {otp}. Valid for 5 minutes."
         await send_sms_via_supabase(phone_number, message)
         
         return {

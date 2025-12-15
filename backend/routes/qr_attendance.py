@@ -62,11 +62,18 @@ async def scan_qr_code(scan_request: QRScanRequest):
     supabase = get_supabase_service()
     
     try:
+        logger.info(f"Scanning QR code: {scan_request.qr_code}")
+        
         # Find member by QR code
         member_response = supabase.table("members").select("id, full_name, status").eq("qr_code", scan_request.qr_code).execute()
         
+        logger.info(f"Member search result: {member_response.data}")
+        
         if not member_response.data:
-            raise HTTPException(status_code=404, detail="Invalid QR code or member not found")
+            # Log all members with QR codes for debugging
+            all_members = supabase.table("members").select("id, full_name, qr_code").limit(5).execute()
+            logger.info(f"Sample members with QR codes: {all_members.data}")
+            raise HTTPException(status_code=404, detail=f"Invalid QR code or member not found. Scanned: {scan_request.qr_code}")
         
         member = member_response.data[0]
         member_id = member["id"]

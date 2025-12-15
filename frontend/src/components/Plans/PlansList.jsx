@@ -547,7 +547,7 @@ const PlansList = () => {
       {/* Benefits Section */}
       <Card className="bg-gray-900 border-gray-800">
         <CardHeader>
-          <CardTitle className="text-white text-center">Why Choose FitLife Gym?</CardTitle>
+          <CardTitle className="text-white text-center">Why Choose VI FITNESS?</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-3 gap-6">

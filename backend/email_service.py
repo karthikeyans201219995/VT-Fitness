@@ -46,7 +46,7 @@ def send_welcome_email(
         smtp_username = os.environ.get('SMTP_USERNAME', '')
         smtp_password = os.environ.get('SMTP_PASSWORD', '')
         from_email = os.environ.get('FROM_EMAIL', smtp_username)
-        gym_name = os.environ.get('GYM_NAME', 'FitLife Gym')
+        gym_name = os.environ.get('GYM_NAME', 'VI FITNESS')
         
         # Check if email is configured
         if not smtp_username or not smtp_password:
@@ -228,7 +228,7 @@ def send_payment_receipt(
         smtp_username = os.environ.get('SMTP_USERNAME', '')
         smtp_password = os.environ.get('SMTP_PASSWORD', '')
         from_email = os.environ.get('FROM_EMAIL', smtp_username)
-        gym_name = os.environ.get('GYM_NAME', 'FitLife Gym')
+        gym_name = os.environ.get('GYM_NAME', 'VI FITNESS')
         
         if not smtp_username or not smtp_password:
             logger.warning("Email service not configured")

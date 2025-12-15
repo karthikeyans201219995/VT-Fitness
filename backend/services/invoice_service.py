@@ -21,7 +21,7 @@ class InvoiceService:
     """Service for generating GST invoices"""
     
     def __init__(self):
-        self.gym_name = os.environ.get('GYM_NAME', 'FitLife Gym')
+        self.gym_name = os.environ.get('GYM_NAME', 'VI FITNESS')
         self.gym_address = os.environ.get('GYM_ADDRESS', '')
         self.gym_city = os.environ.get('GYM_CITY', '')
         self.gym_state = os.environ.get('GYM_STATE', '')

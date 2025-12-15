@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Search, Plus, Edit, Eye, Mail, Phone, Loader2, Key, Trash2 } from 'lucide-react';
+import { Search, Plus, Edit, Eye, Mail, Phone, Loader2, Key, Trash2, QrCode } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import AddMemberForm from './AddMemberForm';
 import EditMemberForm from './EditMemberForm';
 import MemberDetails from './MemberDetails';
 import { useToast } from '../../hooks/use-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const MembersList = () => {
   const [members, setMembers] = useState([]);
@@ -28,8 +29,12 @@ const MembersList = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showQRDialog, setShowQRDialog] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState(null);
+  const [qrCodeData, setQrCodeData] = useState(null);
+  const [loadingQR, setLoadingQR] = useState(false);
   const { toast } = useToast();
+  const { isAdmin, isTrainer } = useAuth();
 
   useEffect(() => {
     fetchMembers();
@@ -140,6 +145,54 @@ const MembersList = () => {
     }
   };
 
+  const handleViewQRCode = async (member) => {
+    setSelectedMember(member);
+    setQrCodeData(null);
+    setShowQRDialog(true);
+    setLoadingQR(true);
+    
+    try {
+      const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+      const response = await fetch(`${API_BASE_URL}/api/qr-attendance/generate/${member.id}`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate QR code');
+      }
+      
+      const data = await response.json();
+      setQrCodeData(data);
+    } catch (error) {
+      console.error('Error fetching QR code:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to load QR code',
+        variant: 'destructive',
+      });
+      setShowQRDialog(false);
+    } finally {
+      setLoadingQR(false);
+    }
+  };
+
+  const handleDownloadQR = () => {
+    if (!qrCodeData || !qrCodeData.qr_image) return;
+    
+    // Create a download link
+    const link = document.createElement('a');
+    link.href = qrCodeData.qr_image;
+    link.download = `${selectedMember.full_name}_QR_Code.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: 'Success',
+      description: 'QR code downloaded successfully',
+    });
+  };
+
   const handleDeleteClick = (member) => {
     setMemberToDelete(member);
     setShowDeleteDialog(true);
@@ -189,25 +242,29 @@ const MembersList = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Members Management</h1>
-          <p className="text-gray-400">Manage gym members and their subscriptions</p>
+          <p className="text-gray-400">
+            {isTrainer ? 'View gym members and their information' : 'Manage gym members and their subscriptions'}
+          </p>
         </div>
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/50">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Member
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-white">Add New Member</DialogTitle>
-              <DialogDescription className="text-gray-400">
-                Fill in the member details below
-              </DialogDescription>
-            </DialogHeader>
-            <AddMemberForm onSubmit={handleAddMember} onCancel={() => setShowAddDialog(false)} />
-          </DialogContent>
-        </Dialog>
+        {isAdmin && (
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/50">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Member
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-white">Add New Member</DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Fill in the member details below
+                </DialogDescription>
+              </DialogHeader>
+              <AddMemberForm onSubmit={handleAddMember} onCancel={() => setShowAddDialog(false)} />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Card className="bg-gray-900 border-gray-800">
@@ -271,30 +328,43 @@ const MembersList = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-700 text-blue-400 hover:bg-gray-700"
-                      onClick={() => handleViewPassword(member)}
-                      title="View Login Credentials"
+                      className="border-gray-700 text-green-400 hover:bg-gray-700"
+                      onClick={() => handleViewQRCode(member)}
+                      title="View QR Code"
                     >
-                      <Key className="h-4 w-4" />
+                      <QrCode className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-700 text-white hover:bg-gray-700"
-                      onClick={() => handleEditMember(member)}
-                      title="Edit Member"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-700 text-red-400 hover:bg-red-900"
-                      onClick={() => handleDeleteClick(member)}
-                      title="Delete Member"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {isAdmin && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-700 text-blue-400 hover:bg-gray-700"
+                          onClick={() => handleViewPassword(member)}
+                          title="View Login Credentials"
+                        >
+                          <Key className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-700 text-white hover:bg-gray-700"
+                          onClick={() => handleEditMember(member)}
+                          title="Edit Member"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-700 text-red-400 hover:bg-red-900"
+                          onClick={() => handleDeleteClick(member)}
+                          title="Delete Member"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -449,6 +519,74 @@ const MembersList = () => {
             <DialogTitle className="text-white">Member Details</DialogTitle>
           </DialogHeader>
           {selectedMember && <MemberDetails member={selectedMember} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Dialog */}
+      <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <QrCode className="h-5 w-5 text-green-500" />
+              Member QR Code
+            </DialogTitle>
+          </DialogHeader>
+          {selectedMember && (
+            <div className="space-y-4">
+              <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                <p className="text-sm text-gray-400 mb-2">Member Name</p>
+                <p className="text-white font-medium text-lg">{selectedMember.full_name}</p>
+              </div>
+
+              {loadingQR ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                </div>
+              ) : qrCodeData ? (
+                <>
+                  <div className="bg-white p-6 rounded-lg flex items-center justify-center">
+                    <img 
+                      src={qrCodeData.qr_image} 
+                      alt="Member QR Code" 
+                      className="w-64 h-64"
+                    />
+                  </div>
+                  
+                  <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                    <p className="text-sm text-gray-400 mb-2">QR Code Value</p>
+                    <p className="text-white font-mono text-xs break-all">{qrCodeData.qr_code}</p>
+                  </div>
+
+                  <div className="bg-blue-900/20 border border-blue-800 p-3 rounded-lg">
+                    <p className="text-blue-400 text-sm">
+                      <strong>How to use:</strong> Member should scan this QR code at the gym entrance for automatic check-in/check-out.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={handleDownloadQR}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      <QrCode className="h-4 w-4 mr-2" />
+                      Download QR Code
+                    </Button>
+                    <Button 
+                      onClick={() => window.print()}
+                      variant="outline"
+                      className="flex-1 border-gray-700 text-white hover:bg-gray-700"
+                    >
+                      Print
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 text-red-400">
+                  Failed to load QR code
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

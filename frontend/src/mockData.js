@@ -308,7 +308,7 @@ export const mockRevenueChart = [
 ];
 
 export const mockGymSettings = {
-  gymName: 'FitLife Gym',
+  gymName: 'VI FITNESS',
   email: 'contact@fitlifegym.com',
   phone: '+1-555-GYM-LIFE',
   address: '123 Fitness Boulevard, New York, NY 10001',

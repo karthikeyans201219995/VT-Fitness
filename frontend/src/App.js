@@ -17,6 +17,7 @@ import Dashboard from "./components/Dashboard/Dashboard";
 import MembersList from "./components/Members/MembersList";
 import MembershipCard from "./components/Card/MembershipCard";
 import PlansList from "./components/Plans/PlansList";
+import PublicPlans from "./components/Plans/PublicPlans";
 import AttendanceTracker from "./components/Attendance/AttendanceTracker";
 import PaymentsList from "./components/Payments/PaymentsList";
 import ReportsAnalytics from "./components/Reports/ReportsAnalytics";
@@ -55,8 +56,11 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public Routes */}
+      <Route path="/" element={<PublicPlans />} />
+      <Route path="/pricing" element={<PublicPlans />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
+      {/* Signup disabled - redirect to login */}
+      <Route path="/signup" element={<Navigate to="/login" replace />} />
 
       {/* Protected Routes */}
       <Route
@@ -160,8 +164,6 @@ function AppRoutes() {
         }
       />
 
-      {/* Redirect root to dashboard or login */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

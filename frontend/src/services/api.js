@@ -2,7 +2,7 @@
  * API Service for communicating with backend
  */
 
-const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
 // Helper function to get auth token
 const getAuthToken = () => {

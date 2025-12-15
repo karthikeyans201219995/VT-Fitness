@@ -24,7 +24,7 @@ class NotificationService:
         self.smtp_username = os.environ.get('SMTP_USERNAME', '')
         self.smtp_password = os.environ.get('SMTP_PASSWORD', '')
         self.from_email = os.environ.get('FROM_EMAIL', self.smtp_username)
-        self.gym_name = os.environ.get('GYM_NAME', 'FitLife Gym')
+        self.gym_name = os.environ.get('GYM_NAME', 'VI FITNESS')
         self.gym_address = os.environ.get('GYM_ADDRESS', '')
         self.gym_phone = os.environ.get('GYM_PHONE', '')
         self.gym_email = os.environ.get('GYM_EMAIL', self.from_email)

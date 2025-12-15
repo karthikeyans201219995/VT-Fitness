@@ -47,7 +47,7 @@ const Signup = () => {
       if (result.success) {
         toast({
           title: "Account Created",
-          description: `Welcome to FitLife Gym, ${result.user.name}!`,
+          description: `Welcome to VI FITNESS, ${result.user.name}!`,
         });
         navigate('/dashboard');
       } else {
@@ -75,7 +75,7 @@ const Signup = () => {
           <div className="inline-flex items-center justify-center p-4 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-600/50">
             <Dumbbell className="h-12 w-12 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Join FitLife Gym</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Join VI FITNESS</h1>
           <p className="text-gray-400">Start your fitness journey today</p>
         </div>
 

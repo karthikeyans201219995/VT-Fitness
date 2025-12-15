@@ -111,20 +111,29 @@ const PaymentsList = () => {
 
   const handleDownloadInvoice = async (payment) => {
     try {
+      console.log('Downloading invoice for payment:', payment.id);
+      
+      const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+      
       // Call the invoice download API
-      const response = await fetch(`http://localhost:8000/api/invoices/payment/${payment.id}/download`, {
+      const response = await fetch(`${API_BASE_URL}/api/invoices/payment/${payment.id}/download`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to download invoice');
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Failed to download invoice: ${response.status} - ${errorText}`);
       }
 
       // Get the PDF blob
       const blob = await response.blob();
+      console.log('PDF blob size:', blob.size);
       
       // Create a download link
       const url = window.URL.createObjectURL(blob);
@@ -146,7 +155,7 @@ const PaymentsList = () => {
       console.error('Download error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to download invoice. Please try again.',
+        description: error.message || 'Failed to download invoice. Please try again.',
         variant: 'destructive',
       });
     }

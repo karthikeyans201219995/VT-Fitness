@@ -248,7 +248,7 @@ You can create email templates for different notifications:
 <body>
     <div class="container">
         <div class="header">
-            <h1>FitLife Gym</h1>
+            <h1>VI FITNESS</h1>
         </div>
         <div class="content">
             <h2>Membership Expiry Reminder</h2>

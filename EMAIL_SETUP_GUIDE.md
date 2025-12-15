@@ -76,11 +76,11 @@ When a new member is added via payment form, they receive:
 
 ### Email Template Preview:
 ```
-Welcome to FitLife Gym!
+Welcome to VI FITNESS!
 
 Hello John Doe,
 
-Thank you for joining FitLife Gym! Your membership has been activated.
+Thank you for joining VI FITNESS! Your membership has been activated.
 
 YOUR LOGIN CREDENTIALS:
 Email: john@example.com
@@ -95,7 +95,7 @@ End Date: February 1, 2025
 Amount Paid: $2000.00
 
 Best regards,
-FitLife Gym Team
+VI FITNESS Team
 ```
 
 ## Testing Email Configuration

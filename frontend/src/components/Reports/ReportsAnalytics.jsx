@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { mockAttendanceChart, mockRevenueChart, mockDashboardStats } from '../../mockData';
+import { reportsAPI } from '../../services/api';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, DollarSign, Calendar } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, Calendar, Loader2 } from 'lucide-react';
+import { useToast } from '../../hooks/use-toast';
 
 const StatCard = ({ title, value, icon: Icon, color, trend }) => (
   <Card className="bg-gray-900 border-gray-800">
@@ -20,55 +21,116 @@ const StatCard = ({ title, value, icon: Icon, color, trend }) => (
 );
 
 const ReportsAnalytics = () => {
-  const stats = mockDashboardStats;
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(null);
+  const [revenueTrend, setRevenueTrend] = useState([]);
+  const [attendanceTrend, setAttendanceTrend] = useState([]);
+  const [memberStats, setMemberStats] = useState(null);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      const [dashboardData, revenueData, attendanceData, membersData, paymentsData] = await Promise.all([
+        reportsAPI.getDashboard(),
+        reportsAPI.getRevenue({ days: 30 }),
+        reportsAPI.getAttendance({ days: 7 }),
+        reportsAPI.getMembers(),
+        fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'}/api/reports/charts/payment-methods`)
+          .then(res => res.json())
+      ]);
+
+      setStats(dashboardData);
+      setMemberStats(membersData);
+      
+      // Format revenue trend for chart (last 7 days)
+      const last7Days = Object.entries(revenueData.daily_data || {})
+        .slice(-7)
+        .map(([date, amount]) => ({
+          date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          revenue: amount
+        }));
+      setRevenueTrend(last7Days);
+
+      // Format attendance trend for chart
+      const attendanceChart = Object.entries(attendanceData.attendance_by_date || {})
+        .map(([date, count]) => ({
+          day: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
+          count: count
+        }));
+      setAttendanceTrend(attendanceChart);
+
+      // Format payment methods
+      if (paymentsData.success) {
+        setPaymentMethods(paymentsData.data);
+      }
+
+    } catch (error) {
+      console.error('Error fetching reports data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load reports data',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading || !stats) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   const membershipDistribution = [
-    { name: 'Active', value: stats.activeMembers, color: '#10B981' },
-    { name: 'Expired', value: stats.totalMembers - stats.activeMembers, color: '#EF4444' }
-  ];
-
-  const revenueByPlan = [
-    { plan: 'Monthly', revenue: 3950 },
-    { plan: 'Quarterly', revenue: 3870 },
-    { plan: 'Annual', revenue: 4630 }
+    { name: 'Active', value: stats.active_members, color: '#10B981' },
+    { name: 'Inactive', value: stats.total_members - stats.active_members, color: '#EF4444' }
   ];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Reports & Analytics</h1>
-        <p className="text-gray-400">Insights and performance metrics</p>
+        <p className="text-gray-400">Real-time insights and performance metrics</p>
       </div>
 
       {/* Key Metrics */}
       <div className="grid gap-6 md:grid-cols-4">
         <StatCard
           title="Total Members"
-          value={stats.totalMembers}
+          value={stats.total_members}
           icon={Users}
           color="bg-blue-600"
-          trend={`+${stats.newMembersThisMonth} this month`}
+          trend={`${stats.active_members} active`}
         />
         <StatCard
           title="Active Members"
-          value={stats.activeMembers}
+          value={stats.active_members}
           icon={TrendingUp}
           color="bg-green-600"
-          trend="91% retention rate"
+          trend={`${((stats.active_members / stats.total_members) * 100).toFixed(0)}% of total`}
         />
         <StatCard
-          title="Total Revenue"
-          value={`$${stats.totalRevenue}`}
+          title="Monthly Revenue"
+          value={`$${stats.monthly_revenue.toFixed(2)}`}
           icon={DollarSign}
           color="bg-purple-600"
-          trend="+15% from last month"
+          trend="This month"
         />
         <StatCard
-          title="Avg. Check-ins/Day"
-          value="52"
+          title="Today's Check-ins"
+          value={stats.today_attendance}
           icon={Calendar}
           color="bg-orange-600"
-          trend="+8% this week"
+          trend="Today"
         />
       </div>
 
@@ -80,7 +142,7 @@ const ReportsAnalytics = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockAttendanceChart}>
+              <BarChart data={attendanceTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey="day" stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
@@ -101,13 +163,13 @@ const ReportsAnalytics = () => {
 
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
-            <CardTitle className="text-white">Revenue Growth (Last 7 Months)</CardTitle>
+            <CardTitle className="text-white">Revenue Trend (Last 7 Days)</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={mockRevenueChart}>
+              <LineChart data={revenueTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="month" stroke="#9CA3AF" />
+                <XAxis dataKey="date" stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
                 <Tooltip
                   contentStyle={{
@@ -169,13 +231,13 @@ const ReportsAnalytics = () => {
 
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
-            <CardTitle className="text-white">Revenue by Plan Type</CardTitle>
+            <CardTitle className="text-white">Revenue by Payment Method</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueByPlan}>
+              <BarChart data={paymentMethods}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="plan" stroke="#9CA3AF" />
+                <XAxis dataKey="method" stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
                 <Tooltip
                   contentStyle={{
@@ -186,7 +248,7 @@ const ReportsAnalytics = () => {
                   labelStyle={{ color: '#fff' }}
                 />
                 <Legend wrapperStyle={{ color: '#9CA3AF' }} />
-                <Bar dataKey="revenue" fill="#8B5CF6" radius={[8, 8, 0, 0]} name="Revenue ($)" />
+                <Bar dataKey="total" fill="#8B5CF6" radius={[8, 8, 0, 0]} name="Revenue ($)" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -194,73 +256,56 @@ const ReportsAnalytics = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-white">Peak Hours</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Morning (6-10 AM)</span>
-                <span className="text-white font-bold">35%</span>
+      {memberStats && (
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white">Membership Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Object.entries(memberStats.by_status || {}).map(([status, count]) => (
+                  <div key={status} className="flex justify-between items-center">
+                    <span className="text-gray-400 capitalize">{status}</span>
+                    <span className="text-white font-bold">{count}</span>
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Afternoon (2-6 PM)</span>
-                <span className="text-white font-bold">28%</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Evening (6-10 PM)</span>
-                <span className="text-white font-bold">37%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-white">Popular Plans</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Monthly Premium</span>
-                <span className="text-white font-bold">42%</span>
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white">Gender Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Object.entries(memberStats.by_gender || {}).map(([gender, count]) => (
+                  <div key={gender} className="flex justify-between items-center">
+                    <span className="text-gray-400 capitalize">{gender.replace('_', ' ')}</span>
+                    <span className="text-white font-bold">{count}</span>
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Annual Elite</span>
-                <span className="text-white font-bold">31%</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Quarterly Basic</span>
-                <span className="text-white font-bold">27%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-white">Member Demographics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Age 18-30</span>
-                <span className="text-white font-bold">45%</span>
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white">Expiring Soon</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Within 30 days</span>
+                  <span className="text-orange-400 font-bold text-2xl">{memberStats.expiring_soon}</span>
+                </div>
+                <p className="text-xs text-gray-500">Members whose membership expires soon</p>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Age 31-45</span>
-                <span className="text-white font-bold">38%</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Age 46+</span>
-                <span className="text-white font-bold">17%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

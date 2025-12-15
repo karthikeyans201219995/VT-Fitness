@@ -7,6 +7,7 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Dumbbell, Mail, Lock } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
+import SynapseBackground from '../ui/synapse-background';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -48,17 +49,21 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <SynapseBackground
+      particleCount={4000}
+      connectionDistance={60}
+      className="flex items-center justify-center p-4"
+    >
+      <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-4 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-600/50">
+          <div className="inline-flex items-center justify-center p-4 bg-blue-600/80 backdrop-blur-sm rounded-2xl mb-4 shadow-lg shadow-blue-600/50 border border-blue-400/30">
             <Dumbbell className="h-12 w-12 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">FitLife Gym</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">VI FITNESS</h1>
           <p className="text-gray-400">Transform Your Body, Transform Your Life</p>
         </div>
 
-        <Card className="bg-gray-900 border-gray-800 shadow-xl">
+        <Card className="bg-gray-900/30 backdrop-blur-xl border-gray-700/50 shadow-2xl shadow-blue-500/10">
           <CardHeader>
             <CardTitle className="text-2xl text-white">Welcome Back</CardTitle>
             <CardDescription className="text-gray-400">
@@ -70,14 +75,14 @@ const Login = () => {
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-gray-300">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
+                  <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-600 focus:ring-blue-600"
+                    className="pl-10 bg-gray-800/50 backdrop-blur-sm border-gray-600/50 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -85,19 +90,19 @@ const Login = () => {
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-gray-300">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <Input
                     id="password"
                     type="password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-600 focus:ring-blue-600"
+                    className="pl-10 bg-gray-800/50 backdrop-blur-sm border-gray-600/50 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500"
                     required
                   />
                 </div>
               </div>
-              <div className="bg-gray-800 rounded-lg p-3 text-sm text-gray-400">
+              <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-3 text-sm text-gray-400 border border-gray-700/30">
                 <p className="font-semibold text-white mb-2">Demo Credentials:</p>
                 <p>Admin: admin@gymfit.com / admin123</p>
                 <p>Trainer: trainer@gymfit.com / trainer123</p>
@@ -113,16 +118,13 @@ const Login = () => {
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
               <p className="text-center text-gray-400 text-sm">
-                Don't have an account?{' '}
-                <Link to="/signup" className="text-blue-400 hover:text-blue-300 font-medium">
-                  Sign up
-                </Link>
+                New member? Visit the gym to register
               </p>
             </CardFooter>
           </form>
         </Card>
       </div>
-    </div>
+    </SynapseBackground>
   );
 };
 

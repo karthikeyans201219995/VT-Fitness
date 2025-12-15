@@ -35,7 +35,7 @@ const Navbar = () => {
             <div className="p-2 bg-blue-600 rounded-lg">
               <Dumbbell className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-white">FitLife Gym</span>
+            <span className="text-xl font-bold text-white">VI FITNESS</span>
           </Link>
 
           <div className="flex items-center space-x-4">

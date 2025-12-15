@@ -21,27 +21,46 @@ async def get_members_with_balance():
         raise HTTPException(status_code=503, detail="Supabase service not configured")
     
     try:
-        # Get members with balance > 0
-        response = supabase.table("members").select(
-            "id, full_name, email, phone, plan_id, plans(name), "
-            "total_amount_due, amount_paid, balance_due, status, end_date"
-        ).gt("balance_due", 0).order("balance_due", desc=True).execute()
+        # Get all members with their plans
+        members_response = supabase.table("members").select(
+            "id, full_name, email, phone, plan_id, plans(name, price), status, end_date"
+        ).execute()
         
+        # Get all payments
+        payments_response = supabase.table("payments").select("member_id, amount, status").execute()
+        
+        # Calculate balances for each member
         balances = []
-        for member in response.data:
-            balance_data = {
-                "member_id": member["id"],  # Use id as member_id
-                "member_name": member["full_name"],
-                "email": member["email"],
-                "phone": member["phone"],
-                "plan_name": member.get("plans", {}).get("name") if member.get("plans") else None,
-                "total_amount_due": float(member.get("total_amount_due", 0)),
-                "amount_paid": float(member.get("amount_paid", 0)),
-                "balance_due": float(member.get("balance_due", 0)),
-                "status": member["status"],
-                "end_date": member["end_date"]
-            }
-            balances.append(BalanceSummary(**balance_data))
+        for member in members_response.data:
+            plan = member.get("plans")
+            plan_price = float(plan.get("price", 0)) if plan else 0
+            
+            # Calculate total paid by this member
+            member_payments = [p for p in payments_response.data if p["member_id"] == member["id"]]
+            total_paid = sum(float(p["amount"]) for p in member_payments if p.get("status") in ["completed", "paid"])
+            
+            # Calculate balance
+            total_due = plan_price
+            balance_due = max(0, total_due - total_paid)
+            
+            # Only include members with outstanding balance
+            if balance_due > 0:
+                balance_data = {
+                    "member_id": member["id"],
+                    "member_name": member["full_name"],
+                    "email": member["email"],
+                    "phone": member["phone"],
+                    "plan_name": plan.get("name") if plan else None,
+                    "total_amount_due": total_due,
+                    "amount_paid": total_paid,
+                    "balance_due": balance_due,
+                    "status": member["status"],
+                    "end_date": member["end_date"]
+                }
+                balances.append(BalanceSummary(**balance_data))
+        
+        # Sort by balance due (highest first)
+        balances.sort(key=lambda x: x.balance_due, reverse=True)
         
         return balances
         
@@ -59,24 +78,37 @@ async def get_member_balance(member_id: str):
         raise HTTPException(status_code=503, detail="Supabase service not configured")
     
     try:
+        # Get member with plan
         response = supabase.table("members").select(
-            "id, full_name, email, phone, plan_id, plans(name), "
-            "total_amount_due, amount_paid, balance_due, status, end_date"
+            "id, full_name, email, phone, plan_id, plans(name, price), status, end_date"
         ).eq("id", member_id).execute()
         
         if not response.data:
             raise HTTPException(status_code=404, detail="Member not found")
         
         member = response.data[0]
+        plan = member.get("plans")
+        plan_price = float(plan.get("price", 0)) if plan else 0
+        
+        # Get member's payments
+        payments_response = supabase.table("payments").select("amount, status").eq("member_id", member_id).execute()
+        
+        # Calculate total paid
+        total_paid = sum(float(p["amount"]) for p in payments_response.data if p.get("status") in ["completed", "paid"])
+        
+        # Calculate balance
+        total_due = plan_price
+        balance_due = max(0, total_due - total_paid)
+        
         balance_data = {
-            "member_id": member["id"],  # Use id as member_id
+            "member_id": member["id"],
             "member_name": member["full_name"],
             "email": member["email"],
             "phone": member["phone"],
-            "plan_name": member.get("plans", {}).get("name") if member.get("plans") else None,
-            "total_amount_due": float(member.get("total_amount_due", 0)),
-            "amount_paid": float(member.get("amount_paid", 0)),
-            "balance_due": float(member.get("balance_due", 0)),
+            "plan_name": plan.get("name") if plan else None,
+            "total_amount_due": total_due,
+            "amount_paid": total_paid,
+            "balance_due": balance_due,
             "status": member["status"],
             "end_date": member["end_date"]
         }
@@ -99,9 +131,9 @@ async def record_partial_payment(payment: PaymentCreate):
         raise HTTPException(status_code=503, detail="Supabase service not configured")
     
     try:
-        # Get member info
+        # Get member info with plan
         member_response = supabase.table("members").select(
-            "id, full_name, total_amount_due, amount_paid, balance_due"
+            "id, full_name, plan_id, plans(name, price)"
         ).eq("id", payment.member_id).execute()
         
         if not member_response.data:
@@ -109,9 +141,16 @@ async def record_partial_payment(payment: PaymentCreate):
         
         member = member_response.data[0]
         member_name = member["full_name"]
-        current_balance = float(member.get("balance_due", 0))
         
-        # Calculate new balance
+        # Get current payments to calculate balance
+        payments_response = supabase.table("payments").select("amount, status").eq("member_id", payment.member_id).execute()
+        total_paid = sum(float(p["amount"]) for p in payments_response.data if p.get("status") in ["completed", "paid"])
+        
+        plan = member.get("plans")
+        plan_price = float(plan.get("price", 0)) if plan else 0
+        current_balance = max(0, plan_price - total_paid)
+        
+        # Calculate new balance after this payment
         new_balance = current_balance - payment.amount
         is_partial = new_balance > 0
         
@@ -122,7 +161,7 @@ async def record_partial_payment(payment: PaymentCreate):
             if plan_response.data:
                 plan_name = plan_response.data[0]["name"]
         
-        # Create payment record
+        # Create payment record (only use fields that exist in the database)
         payment_data = {
             "member_id": payment.member_id,
             "amount": payment.amount,
@@ -131,20 +170,12 @@ async def record_partial_payment(payment: PaymentCreate):
             "plan_id": payment.plan_id,
             "description": payment.description or f"Partial payment - Balance: ${new_balance:.2f}",
             "status": payment.status.value,
-            "payment_type": payment.payment_type.value if payment.payment_type else "partial",
-            "is_partial": is_partial,
-            "remaining_balance": max(0, new_balance),
             "created_at": datetime.utcnow().isoformat()
         }
         
         payment_response = supabase.table("payments").insert(payment_data).execute()
         
-        # Update member balance
-        new_amount_paid = float(member.get("amount_paid", 0)) + payment.amount
-        supabase.table("members").update({
-            "amount_paid": new_amount_paid,
-            "balance_due": max(0, new_balance)
-        }).eq("id", payment.member_id).execute()
+        # Note: Balance is calculated on-the-fly from payments, no need to update member table
         
         result = payment_response.data[0]
         result["member_name"] = member_name
@@ -168,22 +199,35 @@ async def get_balance_summary():
         raise HTTPException(status_code=503, detail="Supabase service not configured")
     
     try:
-        # Get all members
-        response = supabase.table("members").select(
-            "total_amount_due, amount_paid, balance_due, status"
+        # Get all members with plans
+        members_response = supabase.table("members").select(
+            "id, plan_id, plans(price), status"
         ).execute()
+        
+        # Get all payments
+        payments_response = supabase.table("payments").select("member_id, amount, status").execute()
         
         total_due = 0
         total_paid = 0
         total_balance = 0
         members_with_balance = 0
         
-        for member in response.data:
-            total_due += float(member.get("total_amount_due", 0))
-            total_paid += float(member.get("amount_paid", 0))
-            balance = float(member.get("balance_due", 0))
-            total_balance += balance
-            if balance > 0:
+        for member in members_response.data:
+            plan = member.get("plans")
+            plan_price = float(plan.get("price", 0)) if plan else 0
+            
+            # Calculate total paid by this member
+            member_payments = [p for p in payments_response.data if p["member_id"] == member["id"]]
+            member_paid = sum(float(p["amount"]) for p in member_payments if p.get("status") in ["completed", "paid"])
+            
+            # Calculate balance
+            member_balance = max(0, plan_price - member_paid)
+            
+            total_due += plan_price
+            total_paid += member_paid
+            total_balance += member_balance
+            
+            if member_balance > 0:
                 members_with_balance += 1
         
         return {

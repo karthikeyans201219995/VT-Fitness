@@ -43,7 +43,23 @@ const AddMemberForm = ({ onSubmit, onCancel }) => {
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Recalculate end date if start_date changes and plan is selected
+    if (name === 'start_date' && formData.plan_id) {
+      const selectedPlan = plans.find(p => p.id === formData.plan_id);
+      if (selectedPlan) {
+        const startDate = new Date(value);
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + selectedPlan.duration_months);
+        setFormData(prev => ({ 
+          ...prev, 
+          [name]: value,
+          end_date: endDate.toISOString().split('T')[0]
+        }));
+      }
+    }
   };
 
   const handleSelectChange = (name, value) => {

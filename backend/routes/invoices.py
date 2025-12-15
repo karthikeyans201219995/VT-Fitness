@@ -244,7 +244,9 @@ async def send_invoice(invoice_id: str):
 async def download_invoice(invoice_id: str):
     """Download invoice as PDF"""
     try:
-        supabase = get_supabase()
+        # Use service role to bypass RLS policies for invoice generation
+        from supabase_client import get_supabase_service
+        supabase = get_supabase_service()
         
         # Get invoice with member details
         result = supabase.table("invoices").select("*, members!inner(full_name, email, phone, address)").eq("id", invoice_id).execute()
@@ -344,59 +346,72 @@ async def generate_invoice_from_payment(payment_id: str):
 async def download_invoice_from_payment(payment_id: str):
     """Generate and download invoice from payment ID"""
     try:
-        supabase = get_supabase()
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Generating invoice for payment ID: {payment_id}")
+        
+        # Use service role to bypass RLS policies for invoice generation
+        from supabase_client import get_supabase_service
+        supabase = get_supabase_service()
         
         # Get payment with member details
         payment_result = supabase.table("payments").select("*, members!inner(full_name, email, phone, address), plans(name, price)").eq("id", payment_id).execute()
         
         if not payment_result.data:
+            logger.error(f"Payment not found: {payment_id}")
             raise HTTPException(status_code=404, detail="Payment not found")
         
         payment = payment_result.data[0]
-        member = payment["members"]
+        logger.info(f"Payment data retrieved: {payment.get('invoice_number', 'N/A')}")
+        
+        member = payment.get("members")
+        if not member:
+            logger.error(f"Member data not found for payment: {payment_id}")
+            raise HTTPException(status_code=404, detail="Member information not found for this payment")
+        
         plan = payment.get("plans")
         
-        # Check if invoice already exists for this payment
-        existing_invoice = supabase.table("invoices").select("*").eq("payment_id", payment_id).execute()
+        # Generate invoice data on-the-fly (skip database check for now)
+        # This allows invoice generation even if invoices table doesn't exist
+        invoice_number = payment.get("invoice_number") or f"INV-{datetime.now().strftime('%Y%m%d')}-{payment_id[:8].upper()}"
         
-        if existing_invoice.data:
-            # Use existing invoice
-            invoice_data = existing_invoice.data[0]
-        else:
-            # Create invoice data on-the-fly
-            invoice_number = f"INV-{datetime.now().strftime('%Y%m%d')}-{payment_id[:8].upper()}"
-            
-            items = [{
-                "name": plan["name"] if plan else "Membership Payment",
-                "description": f"Payment for {plan['name']}" if plan else "Gym membership payment",
-                "quantity": 1,
-                "rate": payment["amount"],
-                "amount": payment["amount"]
-            }]
-            
-            # Calculate GST
-            tax_calc = invoice_service.calculate_gst(payment["amount"], 18.0, same_state=True)
-            
-            invoice_data = {
-                "invoice_number": invoice_number,
-                "invoice_date": payment["payment_date"],
-                "due_date": payment["payment_date"],
-                "subtotal": payment["amount"],
-                "discount_amount": 0,
-                "tax_rate": 18.0,
-                "tax_amount": tax_calc["tax_amount"],
-                "cgst": tax_calc["cgst"],
-                "sgst": tax_calc["sgst"],
-                "igst": tax_calc["igst"],
-                "total_amount": tax_calc["total"],
-                "items": items,
-                "notes": f"Payment received via {payment['payment_method'].upper()}",
-                "terms": "Thank you for your payment.",
-                "status": "paid"
-            }
+        items = [{
+            "name": plan["name"] if plan else "Membership Payment",
+            "description": f"Payment for {plan['name']}" if plan else "Gym membership payment",
+            "quantity": 1,
+            "rate": payment["amount"],
+            "amount": payment["amount"]
+        }]
+        
+        # Calculate GST
+        tax_calc = invoice_service.calculate_gst(payment["amount"], 18.0, same_state=True)
+        
+        invoice_data = {
+            "invoice_number": invoice_number,
+            "invoice_date": payment["payment_date"],
+            "due_date": payment["payment_date"],
+            "subtotal": payment["amount"],
+            "discount_amount": 0,
+            "tax_rate": 18.0,
+            "tax_amount": tax_calc["tax_amount"],
+            "cgst": tax_calc["cgst"],
+            "sgst": tax_calc["sgst"],
+            "igst": tax_calc["igst"],
+            "total_amount": tax_calc["total"],
+            "items": items,
+            "notes": f"Payment received via {payment['payment_method'].upper()}",
+            "terms": "Thank you for your payment.",
+            "status": "paid"
+        }
         
         # Generate PDF
-        pdf_bytes = invoice_service.generate_invoice_pdf(invoice_data, member)
+        logger.info(f"Generating PDF for invoice: {invoice_data['invoice_number']}")
+        try:
+            pdf_bytes = invoice_service.generate_invoice_pdf(invoice_data, member)
+            logger.info(f"PDF generated successfully, size: {len(pdf_bytes)} bytes")
+        except Exception as pdf_error:
+            logger.error(f"PDF generation failed: {str(pdf_error)}")
+            raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {str(pdf_error)}")
         
         # Return PDF as download
         return Response(
@@ -410,6 +425,8 @@ async def download_invoice_from_payment(payment_id: str):
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        logger.error(f"Error in download_invoice_from_payment: {str(e)}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error generating invoice PDF: {str(e)}")
 
 
