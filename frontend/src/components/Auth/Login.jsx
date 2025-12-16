@@ -56,10 +56,13 @@ const Login = () => {
     >
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-4 bg-blue-600/80 backdrop-blur-sm rounded-2xl mb-4 shadow-lg shadow-blue-600/50 border border-blue-400/30">
-            <Dumbbell className="h-12 w-12 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img 
+              src="/logo/37006_Vi fitness_LOGO_PG-01.png" 
+              alt="VI FITNESS" 
+              className="h-32"
+            />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">VI FITNESS</h1>
           <p className="text-gray-400">Transform Your Body, Transform Your Life</p>
         </div>
 

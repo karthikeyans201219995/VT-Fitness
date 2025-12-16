@@ -99,10 +99,13 @@ const PublicPlans = () => {
     <div className="min-h-screen bg-black">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <Dumbbell className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-white">VI FITNESS</span>
+        <div className="container mx-auto px-4 py-2 flex justify-between items-center">
+          <div className="flex items-center">
+            <img 
+              src="/logo/37006_Vi fitness_LOGO_PG-01.png" 
+              alt="VI FITNESS" 
+              className="h-28 my-0 py-0"
+            />
           </div>
           <div className="flex gap-3">
             <Button

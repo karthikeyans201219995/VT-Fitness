@@ -31,11 +31,12 @@ const Navbar = () => {
     <nav className="bg-black border-b border-gray-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link to="/dashboard" className="flex items-center space-x-2">
-            <div className="p-2 bg-blue-600 rounded-lg">
-              <Dumbbell className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl font-bold text-white">VI FITNESS</span>
+          <Link to="/dashboard" className="flex items-center">
+            <img 
+              src="/logo/37006_Vi fitness_LOGO_PG-01.png" 
+              alt="VI FITNESS" 
+              className="h-14"
+            />
           </Link>
 
           <div className="flex items-center space-x-4">

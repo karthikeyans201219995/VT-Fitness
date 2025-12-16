@@ -119,7 +119,11 @@ const MembershipCard = () => {
               {/* Card Header */}
               <div className="flex justify-between items-start mb-8">
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-1">VI FITNESS</h2>
+                  <img 
+                    src="/logo/37006_Vi fitness_LOGO_PG-01.png" 
+                    alt="VI FITNESS" 
+                    className="h-12 mb-1"
+                  />
                   <p className="text-blue-200 text-sm">Premium Fitness Center</p>
                 </div>
                 <div className="bg-white rounded-lg p-2">
