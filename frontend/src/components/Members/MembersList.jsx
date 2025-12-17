@@ -238,18 +238,18 @@ const MembersList = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Members Management</h1>
-          <p className="text-gray-400">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Members Management</h1>
+          <p className="text-sm sm:text-base text-gray-400">
             {isTrainer ? 'View gym members and their information' : 'Manage gym members and their subscriptions'}
           </p>
         </div>
         {isAdmin && (
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/50">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/50 w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Member
               </Button>
@@ -288,25 +288,25 @@ const MembersList = () => {
                 key={member.id}
                 className="p-4 bg-gray-800 rounded-lg border border-gray-700 hover:border-blue-600 transition-all duration-200"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
                       <h3 className="text-lg font-semibold text-white">{member.full_name}</h3>
                       <Badge className={getStatusColor(member.status)}>
                         {member.status}
                       </Badge>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                    <div className="grid grid-cols-1 gap-2 text-sm">
                       <div className="flex items-center text-gray-400">
-                        <Mail className="mr-2 h-4 w-4" />
-                        {member.email}
+                        <Mail className="mr-2 h-4 w-4 flex-shrink-0" />
+                        <span className="break-all">{member.email}</span>
                       </div>
                       <div className="flex items-center text-gray-400">
-                        <Phone className="mr-2 h-4 w-4" />
+                        <Phone className="mr-2 h-4 w-4 flex-shrink-0" />
                         {member.phone}
                       </div>
                     </div>
-                    <div className="mt-2 flex items-center space-x-4 text-sm">
+                    <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
                       <span className="text-gray-400">
                         Start: <span className="text-white font-medium">{new Date(member.start_date).toLocaleDateString()}</span>
                       </span>
@@ -315,53 +315,58 @@ const MembersList = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-700 text-white hover:bg-gray-700"
+                      className="border-gray-700 text-white hover:bg-gray-700 flex-1 sm:flex-none"
                       onClick={() => handleViewDetails(member)}
                       title="View Details"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Details</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-700 text-green-400 hover:bg-gray-700"
+                      className="border-gray-700 text-green-400 hover:bg-gray-700 flex-1 sm:flex-none"
                       onClick={() => handleViewQRCode(member)}
                       title="View QR Code"
                     >
-                      <QrCode className="h-4 w-4" />
+                      <QrCode className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">QR</span>
                     </Button>
                     {isAdmin && (
                       <>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-gray-700 text-blue-400 hover:bg-gray-700"
+                          className="border-gray-700 text-blue-400 hover:bg-gray-700 flex-1 sm:flex-none"
                           onClick={() => handleViewPassword(member)}
                           title="View Login Credentials"
                         >
-                          <Key className="h-4 w-4" />
+                          <Key className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Password</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-gray-700 text-white hover:bg-gray-700"
+                          className="border-gray-700 text-white hover:bg-gray-700 flex-1 sm:flex-none"
                           onClick={() => handleEditMember(member)}
                           title="Edit Member"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Edit</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-gray-700 text-red-400 hover:bg-red-900"
+                          className="border-gray-700 text-red-400 hover:bg-red-900 flex-1 sm:flex-none"
                           onClick={() => handleDeleteClick(member)}
                           title="Delete Member"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Delete</span>
                         </Button>
                       </>
                     )}

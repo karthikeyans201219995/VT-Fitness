@@ -41,12 +41,17 @@ const ProtectedRoute = ({ children }) => {
 
 // Layout with Sidebar and Navbar
 const AppLayout = ({ children }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
   return (
     <div className="min-h-screen bg-black">
-      <Navbar />
+      <Navbar onMenuClick={() => setIsMobileMenuOpen(true)} />
       <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-8">{children}</main>
+        <Sidebar 
+          isMobileOpen={isMobileMenuOpen} 
+          onMobileClose={() => setIsMobileMenuOpen(false)} 
+        />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

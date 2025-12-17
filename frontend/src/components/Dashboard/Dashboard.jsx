@@ -76,13 +76,13 @@ const Dashboard = () => {
     }
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome Back, {memberData.full_name}!</h1>
-          <p className="text-gray-400">Track your fitness journey</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Welcome Back, {memberData.full_name}!</h1>
+          <p className="text-sm sm:text-base text-gray-400">Track your fitness journey</p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard
             title="Membership Status"
             value={memberData.status === 'active' ? 'Active' : memberData.status === 'inactive' ? 'Inactive' : 'Expired'}
@@ -106,24 +106,24 @@ const Dashboard = () => {
 
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
-            <CardTitle className="text-white">Membership Details</CardTitle>
+            <CardTitle className="text-white text-lg sm:text-xl">Membership Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex justify-between py-2 border-b border-gray-800">
-              <span className="text-gray-400">Email</span>
-              <span className="text-white font-medium">{memberData.email}</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-gray-800 gap-1">
+              <span className="text-gray-400 text-sm">Email</span>
+              <span className="text-white font-medium text-sm break-all">{memberData.email}</span>
             </div>
-            <div className="flex justify-between py-2 border-b border-gray-800">
-              <span className="text-gray-400">Phone</span>
-              <span className="text-white font-medium">{memberData.phone}</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-gray-800 gap-1">
+              <span className="text-gray-400 text-sm">Phone</span>
+              <span className="text-white font-medium text-sm">{memberData.phone}</span>
             </div>
-            <div className="flex justify-between py-2 border-b border-gray-800">
-              <span className="text-gray-400">Blood Group</span>
-              <span className="text-white font-medium">{memberData.blood_group || 'N/A'}</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-gray-800 gap-1">
+              <span className="text-gray-400 text-sm">Blood Group</span>
+              <span className="text-white font-medium text-sm">{memberData.blood_group || 'N/A'}</span>
             </div>
-            <div className="flex justify-between py-2">
-              <span className="text-gray-400">Emergency Contact</span>
-              <span className="text-white font-medium">{memberData.emergency_contact} ({memberData.emergency_phone})</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between py-2 gap-1">
+              <span className="text-gray-400 text-sm">Emergency Contact</span>
+              <span className="text-white font-medium text-sm">{memberData.emergency_contact} ({memberData.emergency_phone})</span>
             </div>
           </CardContent>
         </Card>
@@ -132,15 +132,15 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white mb-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
           {isAdmin ? 'Admin Dashboard' : 'Trainer Dashboard'}
         </h1>
-        <p className="text-gray-400">Overview of gym operations</p>
+        <p className="text-sm sm:text-base text-gray-400">Overview of gym operations</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Members"
           value={dashboardData?.total_members || 0}

@@ -113,3 +113,52 @@ code {
         border-bottom-color: inherit;
     }
 }
+
+/* Mobile Responsive Utilities */
+@layer utilities {
+    /* Touch-friendly tap targets */
+    .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Prevent text selection on buttons */
+    .no-select {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    /* Smooth scrolling for mobile */
+    .smooth-scroll {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Hide scrollbar but keep functionality */
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 640px) {
+    /* Reduce padding on mobile */
+    .mobile-compact {
+        padding: 0.75rem !important;
+    }
+
+    /* Stack elements vertically on mobile */
+    .mobile-stack {
+        flex-direction: column !important;
+    }
+
+    /* Full width on mobile */
+    .mobile-full {
+        width: 100% !important;
+    }
+}
