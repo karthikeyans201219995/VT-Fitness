@@ -9,7 +9,7 @@ from datetime import datetime, date, timedelta
 import sys
 
 # Configuration
-BASE_URL = "https://fitlife-extended.preview.emergentagent.com/api"
+BASE_URL = "https://superbase-cloudflare.preview.emergentagent.com/api"
 HEADERS = {"Content-Type": "application/json"}
 
 def test_basic_endpoints():

@@ -1,7 +1,7 @@
 # CORS Issue Fix
 
 ## Problem
-Frontend at `http://localhost:3000` cannot access backend at `https://fitlife-extended.preview.emergentagent.com` due to CORS policy.
+Frontend at `http://localhost:3000` cannot access backend at `https://superbase-cloudflare.preview.emergentagent.com` due to CORS policy.
 
 ## What Was Fixed
 
@@ -31,7 +31,7 @@ python server.py
 The CORS configuration is now fixed and will allow requests from:
 - `http://localhost:3000` (your frontend)
 - `http://localhost:8000` (backend)
-- `https://fitlife-extended.preview.emergentagent.com` (preview URL)
+- `https://superbase-cloudflare.preview.emergentagent.com` (preview URL)
 - All other origins (for development)
 
 ### Option 2: Update Frontend to Use Local Backend
@@ -104,7 +104,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:8000",
-        "https://fitlife-extended.preview.emergentagent.com",
+        "https://superbase-cloudflare.preview.emergentagent.com",
         "*"
     ],
     allow_credentials=True,

@@ -26,7 +26,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:8000",
-        "https://fitlife-extended.preview.emergentagent.com",
+        "https://superbase-cloudflare.preview.emergentagent.com",
         "*"  # Allow all origins for development
     ],
     allow_credentials=True,

@@ -2,7 +2,7 @@
 
 ## The Problem
 ```
-Access to fetch at 'https://fitlife-extended.preview.emergentagent.com/api/auth/login' 
+Access to fetch at 'https://superbase-cloudflare.preview.emergentagent.com/api/auth/login' 
 from origin 'http://localhost:3000' has been blocked by CORS policy
 ```
 
@@ -19,7 +19,7 @@ I've fixed **3 critical issues** in your backend:
 **Fixed:** Added explicit allowed origins:
 - `http://localhost:3000` ← Your frontend
 - `http://localhost:8000` ← Backend
-- `https://fitlife-extended.preview.emergentagent.com` ← Preview URL
+- `https://superbase-cloudflare.preview.emergentagent.com` ← Preview URL
 - `*` ← All others (for development)
 
 ### 3. ✅ Router Prefixes
