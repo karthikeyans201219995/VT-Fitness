@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { authAPI } from '../services/api';
+import { authService } from '../services/supabase';
+import { supabase } from '../lib/supabaseClient';
 
 const AuthContext = createContext();
 
@@ -13,47 +14,71 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     // Check if user is already logged in
     const checkAuth = async () => {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        try {
-          const userData = await authAPI.getCurrentUser();
-          setUser(userData);
-        } catch (err) {
-          console.error('Failed to fetch user:', err);
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('gymUser');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // Fetch user profile
+          const { data: userProfile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          setUser(session.user);
+          setProfile(userProfile);
         }
+      } catch (err) {
+        console.error('Failed to fetch user:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     checkAuth();
+
+    // Listen to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Fetch user profile
+        const { data: userProfile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        setUser(session.user);
+        setProfile(userProfile);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const login = async (email, password) => {
     try {
       setError(null);
-      const response = await authAPI.login({ email, password });
+      const response = await authService.signIn({ email, password });
       
-      if (response.access_token) {
-        localStorage.setItem('authToken', response.access_token);
-        
-        // Fetch user data
-        const userData = await authAPI.getCurrentUser();
-        setUser(userData);
-        localStorage.setItem('gymUser', JSON.stringify(userData));
-        
-        return { success: true, user: userData };
-      }
+      setUser(response.user);
+      setProfile(response.profile);
       
-      return { success: false, message: 'Login failed' };
+      return { success: true, user: response.profile };
     } catch (err) {
+      console.error('Login error:', err);
       setError(err.message);
       return { success: false, message: err.message };
     }
@@ -62,21 +87,23 @@ export const AuthProvider = ({ children }) => {
   const signup = async (userData) => {
     try {
       setError(null);
-      const response = await authAPI.signup(userData);
+      const response = await authService.signUp({
+        email: userData.email,
+        password: userData.password,
+        fullName: userData.full_name || userData.fullName,
+        role: userData.role || 'member',
+        phone: userData.phone
+      });
       
-      if (response.access_token) {
-        localStorage.setItem('authToken', response.access_token);
-        
-        // Fetch user data
-        const newUserData = await authAPI.getCurrentUser();
-        setUser(newUserData);
-        localStorage.setItem('gymUser', JSON.stringify(newUserData));
-        
-        return { success: true, user: newUserData };
+      if (response.user) {
+        setUser(response.user);
+        // Profile will be set by the auth state change listener
+        return { success: true, user: response.user };
       }
       
       return { success: false, message: 'Signup failed' };
     } catch (err) {
+      console.error('Signup error:', err);
       setError(err.message);
       return { success: false, message: err.message };
     }
@@ -84,27 +111,41 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await authAPI.logout();
+      await authService.signOut();
+      setUser(null);
+      setProfile(null);
     } catch (err) {
       console.error('Logout error:', err);
-    } finally {
-      setUser(null);
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('gymUser');
+      throw err;
+    }
+  };
+
+  const updateProfile = async (updates) => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      
+      const updatedProfile = await authService.updateProfile(user.id, updates);
+      setProfile(updatedProfile);
+      return { success: true, profile: updatedProfile };
+    } catch (err) {
+      console.error('Update profile error:', err);
+      return { success: false, message: err.message };
     }
   };
 
   const value = {
     user,
+    profile,
     login,
     signup,
     logout,
+    updateProfile,
     loading,
     error,
     isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
-    isTrainer: user?.role === 'trainer',
-    isMember: user?.role === 'member'
+    isAdmin: profile?.role === 'admin',
+    isTrainer: profile?.role === 'trainer',
+    isMember: profile?.role === 'member'
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
