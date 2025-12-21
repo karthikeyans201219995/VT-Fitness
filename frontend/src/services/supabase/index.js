@@ -16,3 +16,4 @@ export { workoutPlansService } from './workoutPlansService';
 export { dietPlansService } from './dietPlansService';
 export { equipmentService } from './equipmentService';
 export { qrService } from './qrService';
+export { emailService } from './emailService';
