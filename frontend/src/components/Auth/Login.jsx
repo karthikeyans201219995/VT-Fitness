@@ -22,12 +22,14 @@ const Login = () => {
     setLoading(true);
 
     try {
+      console.log('Attempting login with:', email);
       const result = await login(email, password);
+      console.log('Login result:', result);
       
       if (result.success) {
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${result.user.name}!`,
+          description: `Welcome back!`,
         });
         navigate('/dashboard');
       } else {
@@ -38,6 +40,7 @@ const Login = () => {
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to connect to server",

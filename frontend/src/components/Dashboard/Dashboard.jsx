@@ -33,6 +33,13 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        setLoading(false);
+        console.warn('Dashboard data fetch timed out');
+      }, 10000);
+      
       if (isMember) {
         // Fetch member-specific data
         const members = await membersAPI.getAll();
@@ -43,6 +50,8 @@ const Dashboard = () => {
         const stats = await reportsAPI.getDashboard();
         setDashboardData(stats);
       }
+      
+      clearTimeout(timeoutId);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

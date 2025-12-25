@@ -70,17 +70,24 @@ const PublicPlans = () => {
 
   useEffect(() => {
     fetchPlans();
+    
+    // Failsafe: stop loading after 5 seconds no matter what
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+    
+    return () => clearTimeout(timeout);
   }, []);
 
   const fetchPlans = async () => {
     try {
       const data = await plansAPI.getAll();
-      setPlans(data.filter(p => p.is_active) || []);
+      setPlans((data || []).filter(p => p.is_active));
     } catch (error) {
       console.error('Error fetching plans:', error);
-    } finally {
-      setLoading(false);
+      setPlans([]);
     }
+    setLoading(false);
   };
 
   if (loading) {

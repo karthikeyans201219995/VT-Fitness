@@ -19,25 +19,40 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
+    
+    // Failsafe timeout - stop loading after 5 seconds no matter what
+    const timeout = setTimeout(() => {
+      if (isMounted && loading) {
+        console.warn('Auth check timed out, setting loading to false');
+        setLoading(false);
+      }
+    }, 5000);
+
     // Check if user is already logged in
     const checkAuth = async () => {
       try {
+        console.log('AuthContext: Checking session...');
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('AuthContext: Session result', !!session);
         
-        if (session?.user) {
-          // Fetch user profile
-          const { data: userProfile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+        if (session?.user && isMounted) {
+          // Use auth metadata directly (skip database query)
+          const userProfile = {
+            id: session.user.id,
+            email: session.user.email,
+            full_name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+            role: session.user.user_metadata?.role || 'admin',
+            phone: session.user.user_metadata?.phone
+          };
           
           setUser(session.user);
           setProfile(userProfile);
         }
       } catch (err) {
         console.error('Failed to fetch user:', err);
-      } finally {
+      }
+      if (isMounted) {
         setLoading(false);
       }
     };
@@ -46,24 +61,30 @@ export const AuthProvider = ({ children }) => {
 
     // Listen to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        // Fetch user profile
-        const { data: userProfile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+      console.log('AuthContext: Auth state changed', event);
+      if (session?.user && isMounted) {
+        const userProfile = {
+          id: session.user.id,
+          email: session.user.email,
+          full_name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+          role: session.user.user_metadata?.role || 'admin',
+          phone: session.user.user_metadata?.phone
+        };
         
         setUser(session.user);
         setProfile(userProfile);
-      } else {
+      } else if (isMounted) {
         setUser(null);
         setProfile(null);
       }
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     });
 
     return () => {
+      isMounted = false;
+      clearTimeout(timeout);
       subscription?.unsubscribe();
     };
   }, []);

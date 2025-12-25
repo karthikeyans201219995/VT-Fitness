@@ -1,248 +1,502 @@
 /**
- * API Service for communicating with backend
+ * API Service using Supabase
  */
 
-const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+import { supabase } from '../lib/supabaseClient';
 
-// Helper function to get auth token
-const getAuthToken = () => {
-  const token = localStorage.getItem('authToken');
-  return token;
-};
-
-// Helper function to make API requests
-const apiRequest = async (endpoint, options = {}) => {
-  const token = getAuthToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
-  };
-
-  const config = {
-    ...options,
-    headers,
-  };
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('API Error Response:', errorData);
-      throw new Error(errorData.detail || errorData.message || `Request failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('API Request Error:', error);
-    throw error;
-  }
+// Helper function to handle Supabase errors
+const handleError = (error) => {
+  console.error('Supabase Error:', error);
+  throw new Error(error.message || 'An error occurred');
 };
 
 // Authentication APIs
 export const authAPI = {
-  checkConfig: () => apiRequest('/api/auth/check-config'),
+  checkConfig: async () => {
+    // Check if Supabase is configured
+    return { configured: true };
+  },
   
-  signup: (userData) =>
-    apiRequest('/api/auth/signup', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    }),
+  signup: async (userData) => {
+    const { data, error } = await supabase.auth.signUp({
+      email: userData.email,
+      password: userData.password,
+      options: {
+        data: {
+          full_name: userData.full_name,
+          role: userData.role || 'member'
+        }
+      }
+    });
+    if (error) handleError(error);
+    return data;
+  },
 
-  login: (credentials) =>
-    apiRequest('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    }),
+  login: async (credentials) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password,
+    });
+    if (error) handleError(error);
+    return data;
+  },
 
-  logout: () =>
-    apiRequest('/api/auth/logout', {
-      method: 'POST',
-    }),
+  logout: async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) handleError(error);
+    return { success: true };
+  },
 
-  getCurrentUser: () => apiRequest('/api/auth/me'),
+  getCurrentUser: async () => {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) handleError(error);
+    return user;
+  },
 };
 
 // Members APIs
 export const membersAPI = {
-  getAll: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return apiRequest(`/api/members${queryString ? `?${queryString}` : ''}`);
+  getAll: async (params = {}) => {
+    let query = supabase.from('members').select('*');
+    
+    if (params.status) {
+      query = query.eq('status', params.status);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) handleError(error);
+    return data;
   },
 
-  getById: (id) => apiRequest(`/api/members/${id}`),
+  getById: async (id) => {
+    const { data, error } = await supabase
+      .from('members')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  create: (memberData) =>
-    apiRequest('/api/members', {
-      method: 'POST',
-      body: JSON.stringify(memberData),
-    }),
+  create: async (memberData) => {
+    const { data, error } = await supabase
+      .from('members')
+      .insert([memberData])
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  update: (id, memberData) =>
-    apiRequest(`/api/members/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(memberData),
-    }),
+  update: async (id, memberData) => {
+    const { data, error } = await supabase
+      .from('members')
+      .update(memberData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  delete: (id) =>
-    apiRequest(`/api/members/${id}`, {
-      method: 'DELETE',
-    }),
+  delete: async (id) => {
+    const { error } = await supabase
+      .from('members')
+      .delete()
+      .eq('id', id);
+    if (error) handleError(error);
+    return { success: true };
+  },
 
-  getPassword: (id) => apiRequest(`/api/members/${id}/password`),
+  getPassword: async (id) => {
+    const { data, error } = await supabase
+      .from('members')
+      .select('password')
+      .eq('id', id)
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 };
 
 // Plans APIs
 export const plansAPI = {
-  getAll: () => apiRequest('/api/plans'),
+  getAll: async () => {
+    const { data, error } = await supabase
+      .from('plans')
+      .select('*')
+      .order('price', { ascending: true });
+    if (error) {
+      console.error('Plans fetch error:', error);
+      return []; // Return empty array instead of throwing
+    }
+    return data || [];
+  },
 
-  getById: (id) => apiRequest(`/api/plans/${id}`),
+  getById: async (id) => {
+    const { data, error } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  create: (planData) =>
-    apiRequest('/api/plans', {
-      method: 'POST',
-      body: JSON.stringify(planData),
-    }),
+  create: async (planData) => {
+    const { data, error } = await supabase
+      .from('plans')
+      .insert([planData])
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  update: (id, planData) =>
-    apiRequest(`/api/plans/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(planData),
-    }),
+  update: async (id, planData) => {
+    const { data, error } = await supabase
+      .from('plans')
+      .update(planData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  delete: (id) =>
-    apiRequest(`/api/plans/${id}`, {
-      method: 'DELETE',
-    }),
+  delete: async (id) => {
+    const { error } = await supabase
+      .from('plans')
+      .delete()
+      .eq('id', id);
+    if (error) handleError(error);
+    return { success: true };
+  },
 };
 
 // Attendance APIs
 export const attendanceAPI = {
-  getAll: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return apiRequest(`/api/attendance${queryString ? `?${queryString}` : ''}`);
+  getAll: async (params = {}) => {
+    let query = supabase.from('attendance').select('*, members(*)');
+    
+    if (params.member_id) {
+      query = query.eq('member_id', params.member_id);
+    }
+    if (params.date) {
+      query = query.eq('date', params.date);
+    }
+    
+    const { data, error } = await query.order('date', { ascending: false });
+    if (error) handleError(error);
+    return data;
   },
 
-  getById: (id) => apiRequest(`/api/attendance/${id}`),
+  getById: async (id) => {
+    const { data, error } = await supabase
+      .from('attendance')
+      .select('*, members(*)')
+      .eq('id', id)
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  create: (attendanceData) =>
-    apiRequest('/api/attendance', {
-      method: 'POST',
-      body: JSON.stringify(attendanceData),
-    }),
+  create: async (attendanceData) => {
+    const { data, error } = await supabase
+      .from('attendance')
+      .insert([attendanceData])
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  update: (id, attendanceData) =>
-    apiRequest(`/api/attendance/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(attendanceData),
-    }),
+  update: async (id, attendanceData) => {
+    const { data, error } = await supabase
+      .from('attendance')
+      .update(attendanceData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  delete: (id) =>
-    apiRequest(`/api/attendance/${id}`, {
-      method: 'DELETE',
-    }),
+  delete: async (id) => {
+    const { error } = await supabase
+      .from('attendance')
+      .delete()
+      .eq('id', id);
+    if (error) handleError(error);
+    return { success: true };
+  },
 };
 
 // Payments APIs
 export const paymentsAPI = {
-  getAll: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return apiRequest(`/api/payments${queryString ? `?${queryString}` : ''}`);
+  getAll: async (params = {}) => {
+    let query = supabase.from('payments').select('*, members(*), plans(*)');
+    
+    if (params.member_id) {
+      query = query.eq('member_id', params.member_id);
+    }
+    
+    const { data, error } = await query.order('payment_date', { ascending: false });
+    if (error) handleError(error);
+    return data;
   },
 
-  getById: (id) => apiRequest(`/api/payments/${id}`),
+  getById: async (id) => {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*, members(*), plans(*)')
+      .eq('id', id)
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  create: (paymentData) =>
-    apiRequest('/api/payments', {
-      method: 'POST',
-      body: JSON.stringify(paymentData),
-    }),
+  create: async (paymentData) => {
+    const { data, error } = await supabase
+      .from('payments')
+      .insert([paymentData])
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  createWithMember: (memberPaymentData) =>
-    apiRequest('/api/payments/with-member', {
-      method: 'POST',
-      body: JSON.stringify(memberPaymentData),
-    }),
+  createWithMember: async (memberPaymentData) => {
+    // This would need to be handled with a Supabase function or multiple calls
+    const { member, payment } = memberPaymentData;
+    
+    // First create member
+    const { data: memberData, error: memberError } = await supabase
+      .from('members')
+      .insert([member])
+      .select()
+      .single();
+    if (memberError) handleError(memberError);
+    
+    // Then create payment
+    payment.member_id = memberData.id;
+    const { data: paymentData, error: paymentError } = await supabase
+      .from('payments')
+      .insert([payment])
+      .select()
+      .single();
+    if (paymentError) handleError(paymentError);
+    
+    return { member: memberData, payment: paymentData };
+  },
 
-  update: (id, paymentData) =>
-    apiRequest(`/api/payments/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(paymentData),
-    }),
+  update: async (id, paymentData) => {
+    const { data, error } = await supabase
+      .from('payments')
+      .update(paymentData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  delete: (id) =>
-    apiRequest(`/api/payments/${id}`, {
-      method: 'DELETE',
-    }),
+  delete: async (id) => {
+    const { error } = await supabase
+      .from('payments')
+      .delete()
+      .eq('id', id);
+    if (error) handleError(error);
+    return { success: true };
+  },
 };
 
 // Settings APIs
 export const settingsAPI = {
-  get: () => apiRequest('/api/settings'),
+  get: async () => {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('*')
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  update: (settingsData) =>
-    apiRequest('/api/settings', {
-      method: 'PUT',
-      body: JSON.stringify(settingsData),
-    }),
+  update: async (settingsData) => {
+    const { data, error } = await supabase
+      .from('settings')
+      .upsert(settingsData)
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 };
 
 // Reports APIs
 export const reportsAPI = {
-  getDashboard: () => apiRequest('/api/reports/dashboard'),
-
-  getRevenue: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return apiRequest(`/api/reports/revenue${queryString ? `?${queryString}` : ''}`);
+  getDashboard: async () => {
+    try {
+      // Aggregate data from multiple tables
+      const [members, payments, attendance] = await Promise.all([
+        supabase.from('members').select('*'),
+        supabase.from('payments').select('*'),
+        supabase.from('attendance').select('*')
+      ]);
+      
+      return {
+        total_members: members.data?.length || 0,
+        active_members: members.data?.filter(m => m.status === 'active')?.length || 0,
+        total_revenue: payments.data?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0,
+        monthly_revenue: payments.data?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0,
+        total_attendance: attendance.data?.length || 0,
+        today_checkins: 0,
+      };
+    } catch (error) {
+      console.error('getDashboard error:', error);
+      return {
+        total_members: 0,
+        active_members: 0,
+        total_revenue: 0,
+        monthly_revenue: 0,
+        total_attendance: 0,
+        today_checkins: 0,
+      };
+    }
   },
 
-  getAttendance: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return apiRequest(`/api/reports/attendance${queryString ? `?${queryString}` : ''}`);
+  getRevenue: async (params = {}) => {
+    let query = supabase.from('payments').select('*');
+    
+    if (params.start_date) {
+      query = query.gte('payment_date', params.start_date);
+    }
+    if (params.end_date) {
+      query = query.lte('payment_date', params.end_date);
+    }
+    
+    const { data, error } = await query.order('payment_date', { ascending: false });
+    if (error) handleError(error);
+    return data;
   },
 
-  getMembers: () => apiRequest('/api/reports/members'),
+  getAttendance: async (params = {}) => {
+    let query = supabase.from('attendance').select('*, members(*)');
+    
+    if (params.start_date) {
+      query = query.gte('date', params.start_date);
+    }
+    if (params.end_date) {
+      query = query.lte('date', params.end_date);
+    }
+    
+    const { data, error } = await query.order('date', { ascending: false });
+    if (error) handleError(error);
+    return data;
+  },
+
+  getMembers: async () => {
+    const { data, error } = await supabase
+      .from('members')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) handleError(error);
+    return data;
+  },
 };
 
 // Trainers APIs
 export const trainersAPI = {
-  getAll: () => apiRequest('/api/trainers'),
+  getAll: async () => {
+    const { data, error } = await supabase
+      .from('trainers')
+      .select('*')
+      .order('name', { ascending: true });
+    if (error) handleError(error);
+    return data;
+  },
 
-  getById: (id) => apiRequest(`/api/trainers/${id}`),
+  getById: async (id) => {
+    const { data, error } = await supabase
+      .from('trainers')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  create: (trainerData) =>
-    apiRequest('/api/trainers', {
-      method: 'POST',
-      body: JSON.stringify(trainerData),
-    }),
+  create: async (trainerData) => {
+    const { data, error } = await supabase
+      .from('trainers')
+      .insert([trainerData])
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  update: (id, trainerData) =>
-    apiRequest(`/api/trainers/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(trainerData),
-    }),
+  update: async (id, trainerData) => {
+    const { data, error } = await supabase
+      .from('trainers')
+      .update(trainerData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  delete: (id) =>
-    apiRequest(`/api/trainers/${id}`, {
-      method: 'DELETE',
-    }),
+  delete: async (id) => {
+    const { error } = await supabase
+      .from('trainers')
+      .delete()
+      .eq('id', id);
+    if (error) handleError(error);
+    return { success: true };
+  },
 };
 
 // Balance APIs
 export const balanceAPI = {
-  getMembersWithBalance: () => apiRequest('/api/balance/members-with-balance'),
+  getMembersWithBalance: async () => {
+    const { data, error } = await supabase
+      .from('members')
+      .select('*, payments(*)')
+      .gt('balance', 0);
+    if (error) handleError(error);
+    return data;
+  },
 
-  getMemberBalance: (memberId) => apiRequest(`/api/balance/member/${memberId}`),
+  getMemberBalance: async (memberId) => {
+    const { data, error } = await supabase
+      .from('members')
+      .select('balance, payments(*)')
+      .eq('id', memberId)
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  recordPartialPayment: (paymentData) =>
-    apiRequest('/api/balance/record-partial-payment', {
-      method: 'POST',
-      body: JSON.stringify(paymentData),
-    }),
+  recordPartialPayment: async (paymentData) => {
+    const { data, error } = await supabase
+      .from('payments')
+      .insert([paymentData])
+      .select()
+      .single();
+    if (error) handleError(error);
+    return data;
+  },
 
-  getSummary: () => apiRequest('/api/balance/summary'),
+  getSummary: async () => {
+    const { data, error } = await supabase
+      .from('members')
+      .select('balance');
+    if (error) handleError(error);
+    
+    const totalBalance = data?.reduce((sum, m) => sum + (m.balance || 0), 0) || 0;
+    return { total_balance: totalBalance, members_with_balance: data?.filter(m => m.balance > 0).length || 0 };
+  },
 };
 
 export default {

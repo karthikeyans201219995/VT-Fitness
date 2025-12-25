@@ -50,22 +50,28 @@ export const authService = {
    * Sign in with email and password
    */
   signIn: async ({ email, password }) => {
+    console.log('AuthService: Starting sign in for', email);
+    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
+      console.log('AuthService: Sign in response', { data: !!data, error });
+
       if (error) throw error;
 
-      // Fetch user profile
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+      // Create profile from auth metadata (skip database query to avoid hanging)
+      const profile = {
+        id: data.user.id,
+        email: data.user.email,
+        full_name: data.user.user_metadata?.full_name || email.split('@')[0],
+        role: data.user.user_metadata?.role || 'admin',
+        phone: data.user.user_metadata?.phone
+      };
 
-      if (profileError) throw profileError;
+      console.log('AuthService: Login successful', profile);
 
       return { 
         user: data.user, 
